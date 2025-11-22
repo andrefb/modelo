@@ -1,0 +1,78 @@
+{% load static %}
+{% load widget_tweaks %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Empresa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { DEFAULT: '#015152', light: '#026d6e', dark: '#003839', surface: '#f0fdfd' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-6 font-sans text-slate-800">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        
+        <!-- Cabeçalho -->
+        <div class="bg-brand p-6 md:p-8 text-center md:text-left md:flex md:items-center md:justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2 justify-center md:justify-start">
+                    <i class="ph ph-buildings text-3xl"></i>
+                    Nova Empresa
+                </h2>
+                <p class="text-brand-surface/80 text-sm mt-1">
+                    Cadastre os dados da sua organização para começar.
+                </p>
+            </div>
+            <!-- Steps (Visual apenas) -->
+            <div class="hidden md:flex items-center gap-2 text-white/50 text-sm font-medium">
+                <span>1. Conta</span>
+                <i class="ph ph-caret-right"></i>
+                <span class="text-white font-bold">2. Empresa</span>
+                <i class="ph ph-caret-right"></i>
+                <span>3. Sucesso</span>
+            </div>
+        </div>
+
+        <!-- Formulário -->
+        <form method="post" class="p-6 md:p-8 space-y-8">
+            {% csrf_token %}
+
+              {% include 'companies/includes/form_fields.html' %}
+
+            <!-- Botões -->
+            <div class="pt-6 border-t border-gray-100 flex items-center justify-end gap-4">
+                <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform active:scale-95 flex items-center gap-2">
+                    <i class="ph ph-check"></i>
+                    Salvar e Continuar
+                </button>
+            </div>
+
+        </form>
+    </div>
+    
+    <!-- Logout de Emergência -->
+    <div class="text-center mt-6">
+         <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="text-sm text-slate-400 hover:text-red-500 underline">
+                Sair / Cancelar
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>

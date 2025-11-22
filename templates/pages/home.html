@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Início{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    <!-- Card 1 -->
+    <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-500 text-sm font-medium">Usuários Totais</h3>
+            <span class="p-2 bg-brand-surface text-brand rounded-lg">
+                <i class="ph ph-users text-xl"></i>
+            </span>
+        </div>
+        <p class="text-3xl font-bold text-slate-800">1,234</p>
+        <p class="text-sm text-green-600 flex items-center gap-1 mt-2">
+            <i class="ph ph-trend-up"></i> +12% este mês
+        </p>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-500 text-sm font-medium">Receita</h3>
+            <span class="p-2 bg-brand-surface text-brand rounded-lg">
+                <i class="ph ph-currency-dollar text-xl"></i>
+            </span>
+        </div>
+        <p class="text-3xl font-bold text-slate-800">R$ 45.200</p>
+        <p class="text-sm text-slate-400 mt-2">Atualizado hoje</p>
+    </div>
+
+    <!-- Card de Boas Vindas -->
+    <div class="bg-gradient-to-br from-brand to-brand-dark text-white p-6 rounded-xl shadow-lg md:col-span-2 lg:col-span-1">
+        <h3 class="text-xl font-bold mb-2">Bem-vindo, {{ user.name|default:"Visitante" }}!</h3>
+        <p class="text-brand-surface/80 text-sm mb-4">Este é seu novo painel minimalista e responsivo.</p>
+        <button class="px-4 py-2 bg-white text-brand font-semibold rounded-lg text-sm hover:bg-gray-100 transition-colors">
+            Ver Relatórios
+        </button>
+    </div>
+
+</div>
+
+<!-- Seção de Conteúdo -->
+<div class="mt-8 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h2 class="text-lg font-bold text-slate-800 mb-4">Atividades Recentes</h2>
+    <div class="space-y-4">
+        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-brand"></div>
+                <p class="text-sm text-slate-600">Novo usuário cadastrado</p>
+            </div>
+            <span class="text-xs text-slate-400">2 min atrás</span>
+        </div>
+        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                <p class="text-sm text-slate-600">Pagamento pendente</p>
+            </div>
+            <span class="text-xs text-slate-400">1h atrás</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

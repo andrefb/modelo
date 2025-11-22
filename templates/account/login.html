@@ -1,0 +1,69 @@
+{% extends "base_auth.html" %}
+{% load i18n %}
+{% load account %}
+{% load widget_tweaks %}
+
+{% block head_title %}Acessar Conta{% endblock %}
+{% block sub_title %}Gerencie seu projeto com segurança{% endblock %}
+
+{% block content %}
+
+<form class="login space-y-5" method="POST" action="{% url 'account_login' %}">
+    {% csrf_token %}
+
+    <!-- Renderização Automática dos Campos com Estilo -->
+    {% for field in form %}
+        {% if field.is_hidden %}
+            {{ field }}
+        {% else %}
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1 pl-1">
+                    {{ field.label }}
+                </label>
+                
+                {% if field.errors %}
+                    {% render_field field class="w-full px-4 py-3 rounded-lg border border-red-300 bg-red-50 text-red-900 placeholder-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none" placeholder=field.label %}
+                    <p class="mt-1 text-xs text-red-500 font-medium">{{ field.errors.0 }}</p>
+                {% else %}
+                    <!-- Campo Checkbox (Lembrar de mim) -->
+                    {% if field.widget_type == 'checkbox' %}
+                        <div class="flex items-center gap-2 mt-2">
+                            {% render_field field class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand" %}
+                            <span class="text-sm text-slate-600">{{ field.label }}</span>
+                        </div>
+                    {% else %}
+                    <!-- Campos Normais (Texto, Senha, Email) -->
+                        {% render_field field class="w-full px-4 py-3 rounded-lg border border-gray-200 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none bg-gray-50 focus:bg-white" placeholder=field.label %}
+                    {% endif %}
+                {% endif %}
+                
+                {% if field.help_text %}
+                    <p class="mt-1 text-xs text-gray-400">{{ field.help_text }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <!-- Link de Esqueceu Senha -->
+    <div class="flex justify-end">
+        <a href="{% url 'account_reset_password' %}" class="text-sm font-medium text-brand hover:text-brand-dark hover:underline transition-colors">
+            Esqueceu a senha?
+        </a>
+    </div>
+
+    <!-- Botão de Ação -->
+    <button type="submit" class="w-full py-3 px-4 bg-brand hover:bg-brand-dark text-white font-semibold rounded-lg shadow-lg shadow-brand/30 transform active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
+        <i class="ph ph-sign-in text-xl"></i>
+        Entrar
+    </button>
+
+</form>
+
+<div class="mt-8 pt-6 border-t border-gray-100 text-center">
+    <p class="text-sm text-slate-500">
+        Não tem uma conta? 
+        <a href="{{ signup_url }}" class="font-bold text-brand hover:underline">Cadastre-se aqui</a>
+    </p>
+</div>
+
+{% endblock %}

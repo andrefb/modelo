@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Editar Empresa{% endblock %}
+{% block page_title %}Editar Dados da Empresa{% endblock %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    
+    <!-- Header -->
+    <div class="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="ph ph-pencil-simple text-brand"></i>
+            Atualizar Informações
+        </h2>
+        <a href="{% url 'company_detail' %}" class="text-sm text-slate-500 hover:text-red-600">Cancelar</a>
+    </div>
+
+    <form method="post" class="p-6 md:p-8">
+        {% csrf_token %}
+
+        <!-- AQUI ESTÁ A MÁGICA: Chamamos o arquivo que acabamos de criar -->
+        {% include 'companies/includes/form_fields.html' %}
+
+        <div class="pt-6 mt-8 border-t border-gray-100 flex items-center justify-end gap-4">
+            <a href="{% url 'company_detail' %}" class="px-6 py-2 text-slate-600 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</a>
+            <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors flex items-center gap-2">
+                <i class="ph ph-floppy-disk"></i>
+                Salvar Alterações
+            </button>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base_auth.html" %}
+
+{% block head_title %}Email Enviado{% endblock %}
+{% block sub_title %}Cheque sua caixa de entrada{% endblock %}
+
+{% block content %}
+<div class="text-center space-y-6">
+    <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto">
+        <i class="ph ph-paper-plane-tilt text-4xl text-green-600"></i>
+    </div>
+
+    <p class="text-slate-600">
+        Enviamos um código de confirmação para seu endereço de email.
+    </p>
+
+    <a href="{% url 'account_confirm_email' %}" class="block w-full py-3 px-4 bg-brand text-white font-semibold rounded-lg hover:bg-brand-dark transition-colors">
+        Digitar Código
+    </a>
+</div>
+{% endblock %}

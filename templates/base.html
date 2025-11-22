@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meu Projeto{% endblock %}</title>
+    
+    <!-- Tailwind CSS (Configurado para sua cor) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#015152', // Sua cor base
+                            light: '#026d6e',   // Um tom mais claro para hover
+                            dark: '#003839',    // Um tom mais escuro
+                            surface: '#f0fdfd', // Fundo bem clarinho combinando
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'], // Fonte moderna
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonte Inter (Google Fonts) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones (Phosphor Icons - Mais leves e bonitos que FontAwesome) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Transição suave para o menu mobile */
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 antialiased">
+
+    <div class="flex h-screen overflow-hidden bg-gray-50">
+        
+        <!-- 1. MENU LATERAL (SIDEBAR) -->
+        {% include 'includes/sidebar.html' %}
+
+        <!-- ÁREA PRINCIPAL -->
+        <div class="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+
+            <!-- 2. CABEÇALHO MOBILE (Só aparece no celular) -->
+            {% include 'includes/mobile-header.html' %}
+
+            <!-- 3. TOPBAR (Só aparece no Desktop) -->
+            {% include 'includes/topbar.html' %}
+
+            <!-- 4. CONTEÚDO DA PÁGINA -->
+            <main class="w-full flex-grow p-6">
+                {% if messages %}
+                    <div class="mb-4 space-y-2">
+                        {% for message in messages %}
+                            <div class="p-4 rounded-md text-sm font-medium 
+                                {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+                                {% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+                                {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </main>
+
+        </div>
+    </div>
+
+    <!-- Script para abrir/fechar menu mobile -->
+<!-- Script para abrir/fechar menu mobile (Lado Direito) -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        
+        function toggleSidebar() {
+            // Toggle da classe que empurra o menu para fora da tela (Direita)
+            sidebar.classList.toggle('translate-x-full');
+            
+            // Mostra/Esconde o fundo escuro
+            backdrop.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
+</body>
+</html>

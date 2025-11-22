@@ -1,0 +1,33 @@
+# --- Django ---
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# --- Ambiente e Segredos (CRÍTICO) ---
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak
+venv.bak
+
+# --- VS Code e Editor ---
+.vscode/
+.idea/
+*.sublime-workspace
+
+# --- Python ---
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
