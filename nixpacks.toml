@@ -21,4 +21,4 @@ cmds = [
 
 [start]
 # O comando de inicialização usando seu arquivo de config otimizado
-cmd = ". .venv/bin/activate && python manage.py migrate && gunicorn core.wsgi:application --config gunicorn_config.py"
+cmd = "sh start.sh"
