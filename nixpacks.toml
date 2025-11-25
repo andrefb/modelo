@@ -19,6 +19,3 @@ cmds = [
     "python manage.py collectstatic --noinput"
 ]
 
-[start]
-# O comando de inicialização usando seu arquivo de config otimizado
-cmd = "sh start.sh"
