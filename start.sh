@@ -1,14 +1,19 @@
 #!/bin/bash
-
-# Para o script se der erro em qualquer comando
 set -e
 
 echo "🚀 Iniciando Deploy..."
 
-# 1. Aplica as migrações no banco de dados
 echo "🔄 Rodando Migrations..."
 python manage.py migrate --noinput
 
-# 2. Inicia o Gunicorn com a config otimizada
-echo "🔥 Iniciando Servidor..."
-gunicorn core.wsgi:application --config gunicorn_config.py
+echo "🔥 Iniciando Servidor (Config Hardcoded)..."
+# Aqui colocamos as configs direto no comando, sem precisar do arquivo .py
+gunicorn core.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers 3 \
+    --threads 4 \
+    --timeout 60 \
+    --keep-alive 5 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info
