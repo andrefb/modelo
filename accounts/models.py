@@ -19,8 +19,10 @@ class CustomUserManager(BaseUserManager):
 
 # 2. O Modelo de Usuário (A Tabela no Banco)
 class CustomUser(AbstractUser):
-    username = None  # Removemos o campo username
-    email = models.EmailField('Endereço de Email', unique=True)
+    username = None  
+    first_name = None 
+    last_name = None 
+    email = models.EmailField('Endereço de Email', unique=True, db_index=True)
     
     # Campos novos
     name = models.CharField('Nome Completo', max_length=255)
@@ -28,9 +30,15 @@ class CustomUser(AbstractUser):
 
     # Configurações do Django
     USERNAME_FIELD = 'email'  # O login será pelo email
-    REQUIRED_FIELDS = ['name', 'phone']  # Campos obrigatórios no terminal (createsuperuser)
+    REQUIRED_FIELDS = ['name']  # Campos obrigatórios no terminal (createsuperuser)
 
     objects = CustomUserManager()
+
+    def get_short_name(self):    
+        return self. name.split()[0] if self.name else self.email. split('@')[0]
+
+    def get_full_name(self):        
+        return self. name or self.email
 
     def __str__(self):
         return self.email

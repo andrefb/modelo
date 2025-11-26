@@ -14,34 +14,42 @@ class CustomSignupForm(SignupForm):
         user.save()
         return user
 
+# accounts/forms.py
 class CustomUserCreationForm(UserCreationForm):
-    # Redeclaramos as senhas para o Admin não se perder
-    password_1 = forms.CharField(
-        label="Senha",
-        widget=forms.PasswordInput,
-        strip=False,
-        help_text="A senha deve ter pelo menos 8 caracteres."
-    )
-    password_2 = forms.CharField(
-        label="Confirmação de senha",
-        widget=forms.PasswordInput,
-        strip=False,
-        help_text="Digite a mesma senha novamente."
-    )
-
+    # NÃO precisa redeclarar!  O UserCreationForm já tem password1 e password2
+    
     class Meta:
         model = CustomUser
-        fields = ('email', 'name', 'phone') # Senhas não entram aqui, mas já estão declaradas acima
+        fields = ('email', 'name', 'phone')
+    
+    def clean_password2(self):
+        # Validação de confirmação já vem do UserCreationForm
+        return super().clean_password2()
 
     def save(self, commit=True):
         # Garante que a senha seja salva criptografada
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password_1"])
+        user.set_password(self.cleaned_data["password1"])
         if commit:
             user.save()
         return user
+    
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        
+        # Remove espaços duplos
+        name = ' '.join(name. split())
+        
+        # Capitaliza (opcional, mas elegante)
+        # name = name.title()
+        
+        if len(name) < 3:
+            raise forms.ValidationError('Nome deve ter pelo menos 3 caracteres.')
+        
+        return name
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = CustomUser
         fields = ('email', 'name', 'phone')
+

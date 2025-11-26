@@ -1,13 +1,11 @@
 import os
 
-# Arquivos e pastas que queremos ignorar
-IGNORE_DIRS = {'.git', '__pycache__', 'venv', '.venv', 'env', 'media', 'staticfiles', '.vscode'}
-IGNORE_FILES = {'db.sqlite3', '.env', 'package-lock.json', 'poetry.lock', 'gerar_contexto.py'}
-# Extensões que queremos ler
+# --- CONFIGURAÇÃO: O que ignorar ---
+IGNORE_DIRS = {'.git', '__pycache__', 'venv', '.venv', 'env', 'media', 'staticfiles', '.vscode', '.idea'}
+IGNORE_FILES = {'db.sqlite3', '.env', 'package-lock.json', 'poetry.lock', 'gerar_contexto.py', 'contexto_projeto.txt'}
 ALLOWED_EXTENSIONS = {'.py', '.html', '.css', '.js', '.txt', '.md'}
 
 def should_process(path, name):
-    # Filtra diretórios e arquivos ignorados
     if name in IGNORE_DIRS or name in IGNORE_FILES:
         return False
     return True
@@ -17,21 +15,23 @@ def get_file_content(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception:
-        return "[Erro ao ler arquivo ou arquivo binário]"
+        return "[Arquivo binário ou erro de leitura]"
 
 def main():
     output_file = 'contexto_projeto.txt'
     
     with open(output_file, 'w', encoding='utf-8') as out:
-        # 1. Escreve a estrutura de diretórios (Tree)
-        out.write("=== ESTRUTURA DO PROJETO ===\n")
+        # 1. Cabeçalho
+        out.write("=== ESTRUTURA DO PROJETO DJANGO ===\n")
+        
+        # 2. Desenha a árvore de pastas
         for root, dirs, files in os.walk('.'):
-            # Modifica dirs in-place para pular pastas ignoradas
-            dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
+            dirs[:] = [d for d in dirs if d not in IGNORE_DIRS] # Filtra pastas na hora
             
             level = root.replace('.', '').count(os.sep)
             indent = ' ' * 4 * (level)
             out.write(f"{indent}{os.path.basename(root)}/\n")
+            
             subindent = ' ' * 4 * (level + 1)
             for f in files:
                 if f not in IGNORE_FILES:
@@ -39,7 +39,7 @@ def main():
         
         out.write("\n\n=== CONTEÚDO DOS ARQUIVOS ===\n")
         
-        # 2. Escreve o conteúdo dos arquivos importantes
+        # 3. Copia o conteúdo dos arquivos relevantes
         for root, dirs, files in os.walk('.'):
             dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
             
@@ -50,11 +50,11 @@ def main():
                 _, ext = os.path.splitext(file)
                 if ext in ALLOWED_EXTENSIONS:
                     filepath = os.path.join(root, file)
-                    out.write(f"\n\n--- ARQUIVO: {filepath} ---\n")
+                    out.write(f"\n\n--- INICIO DO ARQUIVO: {filepath} ---\n")
                     out.write(get_file_content(filepath))
+                    out.write(f"\n--- FIM DO ARQUIVO: {filepath} ---\n")
 
-    print(f"✅ Contexto gerado com sucesso em: {output_file}")
-    print("Agora arraste este arquivo para o chat da IA!")
+    print(f"✅ Sucesso! O arquivo '{output_file}' foi gerado na raiz.")
 
 if __name__ == '__main__':
     main()
