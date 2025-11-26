@@ -35,10 +35,10 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     def get_short_name(self):    
-        return self. name.split()[0] if self.name else self.email. split('@')[0]
+        return self.name.split()[0] if self.name else self.email.split('@')[0]
 
     def get_full_name(self):        
-        return self. name or self.email
+        return self.name or self.email
 
     def __str__(self):
         return self.email

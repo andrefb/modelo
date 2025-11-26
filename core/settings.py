@@ -165,20 +165,15 @@ else:
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@seusite.com')
 
+
+
 # Redirecionamentos
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 LOGIN_URL = 'account_login' # Nome da rota de login do Allauth
 
-import sentry_sdk
 
-sentry_sdk.init(
-    dsn="https://d35b6c2a9a325f7edb984bce43368cb2@o4510428396650496.ingest.us.sentry.io/4510428405366784",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-)
 
 # Adicionar no settings. py:
 
@@ -201,3 +196,29 @@ ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 
 # Impedir enumeração de usuários
 ACCOUNT_PREVENT_ENUMERATION = True  # 👈 IMPORTANTE!
+
+# Adicione ao settings.py
+CACHES = {
+    'default': {
+        'BACKEND': 'django. core.cache.backends.redis.RedisCache',
+        'LOCATION': env('REDIS_URL', default='redis://127.0.0. 1:6379/1'),
+    }
+}
+
+
+import sentry_sdk
+
+if not DEBUG:
+    sentry_sdk. init(
+        dsn=env('SENTRY_DSN', default=''),
+        send_default_pii=True,
+        traces_sample_rate=0.1,  # 10% das transações
+    )
+    
+    # Headers de segurança
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
