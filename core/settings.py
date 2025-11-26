@@ -151,8 +151,19 @@ ACCOUNT_FORMS = {
 # Verificação de email
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = True
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Meu Projeto] '
+
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core. mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail. backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = env. int('EMAIL_PORT', default=587)
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@seusite.com')
 
 # Redirecionamentos
 LOGIN_REDIRECT_URL = '/'
@@ -168,3 +179,25 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
 )
+
+# Adicionar no settings. py:
+
+# ═══════════════════════════════════════════════════════════════
+# ALLAUTH - SEGURANÇA
+# ═══════════════════════════════════════════════════════════════
+
+# Tempo de expiração do código de verificação (padrão: 3 dias = muito!)
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 1  # 👈 Reduzir para 1 dia
+
+# Cooldown para reenvio de código (evita spam)
+ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 180  # 3 minutos entre reenvios
+
+# Máximo de tentativas de login (proteção contra brute-force)
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300  # 5 minutos de bloqueio
+
+# Logout ao trocar senha (segurança)
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+
+# Impedir enumeração de usuários
+ACCOUNT_PREVENT_ENUMERATION = True  # 👈 IMPORTANTE!
