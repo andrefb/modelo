@@ -24,52 +24,50 @@
 </head>
 <body class="bg-gray-50 min-h-screen p-6 font-sans text-slate-800">
 
-    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         
-        <!-- Cabeçalho -->
-        <div class="bg-brand p-6 md:p-8 text-center md:text-left md:flex md:items-center md:justify-between">
+        <!-- Cabeçalho Compacto -->
+        <div class="bg-brand px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2 justify-center md:justify-start">
-                    <i class="ph ph-buildings text-3xl"></i>
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="ph ph-buildings text-2xl opacity-90"></i>
                     Nova Empresa
                 </h2>
-                <p class="text-brand-surface/80 text-sm mt-1">
-                    Cadastre os dados da sua organização para começar.
+                <p class="text-brand-surface/80 text-xs mt-1">
+                    Preencha os dados abaixo para configurar seu ambiente.
                 </p>
             </div>
-            <!-- Steps (Visual apenas) -->
-            <div class="hidden md:flex items-center gap-2 text-white/50 text-sm font-medium">
+            
+            <!-- Steps Minimalista -->
+            <div class="flex items-center gap-3 text-white/40 text-xs font-semibold uppercase tracking-wider">
                 <span>1. Conta</span>
-                <i class="ph ph-caret-right"></i>
-                <span class="text-white font-bold">2. Empresa</span>
-                <i class="ph ph-caret-right"></i>
-                <span>3. Sucesso</span>
+                <i class="ph ph-caret-right text-white/20"></i>
+                <span class="text-white">2. Empresa</span>
+                <i class="ph ph-caret-right text-white/20"></i>
+                <span>3. Painel</span>
             </div>
         </div>
 
         <!-- Formulário -->
-        <form method="post" class="p-6 md:p-8 space-y-8">
+        <form method="post" class="p-8 space-y-8">
             {% csrf_token %}
 
-              {% include 'companies/includes/form_fields.html' %}
+            {% include 'companies/includes/form_fields.html' %}
 
-            <!-- Botões -->
             <div class="pt-6 border-t border-gray-100 flex items-center justify-end gap-4">
-                <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform active:scale-95 flex items-center gap-2">
-                    <i class="ph ph-check"></i>
+                <button type="submit" class="bg-brand hover:bg-brand-dark text-white text-sm font-bold py-2.5 px-6 rounded-md shadow-md shadow-brand/20 transition-all transform active:scale-[0.98] flex items-center gap-2">
+                    <i class="ph ph-check text-lg"></i>
                     Salvar e Continuar
                 </button>
             </div>
-
         </form>
     </div>
     
-    <!-- Logout de Emergência -->
     <div class="text-center mt-6">
          <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
-            <button type="submit" class="text-sm text-slate-400 hover:text-red-500 underline">
-                Sair / Cancelar
+            <button type="submit" class="text-xs font-medium text-slate-400 hover:text-red-600 transition-colors">
+                Cancelar e Sair
             </button>
         </form>
     </div>

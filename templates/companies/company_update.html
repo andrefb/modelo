@@ -6,27 +6,39 @@
 
 {% block content %}
 
-<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+<div class="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     
     <!-- Header -->
-    <div class="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
-        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <i class="ph ph-pencil-simple text-brand"></i>
-            Atualizar Informações
-        </h2>
-        <a href="{% url 'company_detail' %}" class="text-sm text-slate-500 hover:text-red-600">Cancelar</a>
+    <div class="bg-gray-50 px-8 py-5 border-b border-gray-200 flex justify-between items-center">
+        <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="ph ph-pencil-simple text-brand text-xl"></i>
+                Atualizar Informações
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5 ml-8">Edite os dados cadastrais e o quadro societário.</p>
+        </div>
+
+        <!-- TOPO: Mudei de cinza para vermelho direto -->
+        <a href="{% url 'company_detail' %}" class="text-xs font-bold text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1">
+            <i class="ph ph-x"></i> CANCELAR
+        </a>
     </div>
 
-    <form method="post" class="p-6 md:p-8">
+    <form method="post" class="p-8">
         {% csrf_token %}
 
-        <!-- AQUI ESTÁ A MÁGICA: Chamamos o arquivo que acabamos de criar -->
         {% include 'companies/includes/form_fields.html' %}
 
-        <div class="pt-6 mt-8 border-t border-gray-100 flex items-center justify-end gap-4">
-            <a href="{% url 'company_detail' %}" class="px-6 py-2 text-slate-600 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</a>
-            <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors flex items-center gap-2">
-                <i class="ph ph-floppy-disk"></i>
+        <!-- Footer -->
+        <div class="pt-6 mt-8 border-t border-gray-100 flex items-center justify-end gap-3">
+            
+            <!-- BAIXO: Agora tem cor por padrão (Fundo vermelhinho e Borda vermelha suave) -->
+            <a href="{% url 'company_detail' %}" class="px-5 py-2.5 text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:text-red-800 hover:border-red-300 transition-all shadow-sm">
+                Cancelar
+            </a>
+
+            <button type="submit" class="bg-brand hover:bg-brand-dark text-white text-sm font-bold py-2.5 px-6 rounded-md shadow-md shadow-brand/20 transition-all transform active:scale-[0.98] flex items-center gap-2">
+                <i class="ph ph-floppy-disk text-lg"></i>
                 Salvar Alterações
             </button>
         </div>

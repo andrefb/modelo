@@ -22,7 +22,7 @@ class CustomUser(AbstractUser):
     username = None  
     first_name = None 
     last_name = None 
-    email = models.EmailField('Endereço de Email', unique=True, db_index=True)
+    email = models.EmailField('Endereço de Email', unique=True)
     
     # Campos novos
     name = models.CharField('Nome Completo', max_length=255)

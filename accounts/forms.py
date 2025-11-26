@@ -8,10 +8,16 @@ class CustomSignupForm(SignupForm):
     phone = forms.CharField(label='Telefone', max_length=20, widget=forms.TextInput(attrs={'placeholder': '(11) 99999-9999'}))
 
     def save(self, request):
+        # 1. O Allauth salva o usuário (User instance)
         user = super(CustomSignupForm, self).save(request)
+        
+        # 2. Nós atualizamos os campos extras
         user.name = self.cleaned_data['name']
         user.phone = self.cleaned_data['phone']
+        
+        # 3. Salvamos novamente (Update)
         user.save()
+        
         return user
 
 # accounts/forms.py

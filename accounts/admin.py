@@ -7,7 +7,7 @@ from .forms import CustomUserCreationForm, CustomUserChangeForm
 class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
-    model = CustomUser
+    model = CustomUser   
     
     list_display = ['email', 'name', 'phone', 'is_staff', 'is_active']
     list_filter = ['is_staff', 'is_active']
@@ -26,6 +26,6 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'name', 'phone', 'password_1', 'password_2'),
+            'fields': ('email', 'name', 'phone', 'password1', 'password2'),
         }),
     )

@@ -7,212 +7,258 @@
 
 <div class="max-w-6xl mx-auto">
 
-    <!-- Cabeçalho com Ações -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-            <div class="w-16 h-16 bg-brand/10 text-brand rounded-xl flex items-center justify-center">
+            <div class="w-14 h-14 bg-brand/10 text-brand rounded-lg flex items-center justify-center shadow-sm">
                 <i class="ph ph-buildings text-3xl"></i>
             </div>
             <div>
-                <h2 class="text-2xl font-bold text-slate-800">{{ company.trade_name|default:company.legal_name }}</h2>
-                <div class="flex items-center gap-2 mt-1 text-slate-500 text-sm">
-                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded border border-green-200">ATIVO</span>
+                <h2 class="text-xl font-bold text-slate-800">{{ company.trade_name|default:company.legal_name }}</h2>
+                <div class="flex items-center gap-3 mt-1">
+                    <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-200 uppercase">Ativo</span>
                     
-                    <!-- CNPJ no Topo (Padrão: Cinza -> Hover: Brand) -->
-                    <div class="flex items-center gap-1 ml-2 cursor-pointer group" onclick="copyText('{{ company.cnpj }}', this)" title="Clique para copiar">
-                        <i class="ph ph-hash text-slate-400"></i> 
-                        <span>{{ company.cnpj }}</span>
+                    <!-- CNPJ HEADER: Padronizado -->
+                    <div class="flex items-center gap-2 cursor-pointer group" onclick="copyText('{{ company.cnpj }}', this)" title="Copiar CNPJ">
+                        <i class="ph ph-hash text-slate-300"></i> 
+                        <span class="text-sm text-slate-600 font-medium">{{ company.cnpj }}</span>
                         <i class="ph ph-copy text-slate-300 group-hover:text-brand transition-colors"></i>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <a href="{% url 'company_update' %}" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-slate-700 font-medium rounded-lg hover:bg-gray-50 hover:text-brand transition-colors shadow-sm">
-            <i class="ph ph-pencil-simple"></i>
-            Editar Dados
-        </a>
+        <br />
+<!-- Botão com fundo suave (Brand Surface) e texto na cor da marca -->
+<a href="{% url 'company_update' %}" class="flex items-center gap-2 px-4 py-2 bg-brand-surface border border-brand/20 text-brand text-sm font-bold rounded-lg hover:bg-brand hover:text-white transition-all shadow-sm">
+    <i class="ph ph-pencil-simple text-lg"></i>
+    Editar Dados
+</a>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- Coluna Esquerda (Principal) -->
+        <!-- COLUNA ESQUERDA -->
         <div class="lg:col-span-2 space-y-6">
             
-            <!-- Card Identificação -->
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
-                    <i class="ph ph-identification-card text-brand"></i> Dados Cadastrais
+            <!-- 1. DADOS CADASTRAIS -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="ph ph-identification-card text-brand text-lg"></i> Dados Cadastrais
                 </h3>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
-
-                     <!-- CNPJ com Botão Padronizado -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">CNPJ</span>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">CNPJ</span>
                         <div class="flex items-center gap-2">
-                            <span class="text-slate-800 font-medium text-lg font-mono">{{ company.cnpj }}</span>
-                            <button onclick="copyText('{{ company.cnpj }}', this)" class="text-slate-300 hover:text-brand p-1 transition-colors" title="Copiar CNPJ">
+                            <span class="text-slate-800 text-sm">{{ company.cnpj }}</span>
+                            <!-- Botão Padronizado -->
+                            <button onclick="copyText('{{ company.cnpj }}', this)" class="text-slate-300 hover:text-brand transition-colors" title="Copiar">
                                 <i class="ph ph-copy text-lg"></i>
                             </button>
                         </div>
                     </div>
 
                      <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Inscrição Estadual</span>
-                        <span class="text-slate-800 font-medium text-lg">{{ company.state_registration|default:"Isento/Não informado" }}</span>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Inscrição Estadual</span>
+                        <span class="text-slate-800 text-sm">{{ company.state_registration|default:"-" }}</span>
                     </div>
 
                     <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Razão Social</span>
-                        <span class="text-slate-800 font-medium">{{ company.legal_name }}</span>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Razão Social</span>
+                        <span class="text-slate-800 text-sm font-medium">{{ company.legal_name }}</span>
                     </div>
                     <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nome Fantasia</span>
-                        <span class="text-slate-800 font-medium">{{ company.trade_name|default:"-" }}</span>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome Fantasia</span>
+                        <span class="text-slate-800 text-sm font-medium">{{ company.trade_name|default:"-" }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Card Endereço -->
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
-                    <i class="ph ph-map-pin text-brand"></i> Localização
+            <!-- 2. LOCALIZAÇÃO -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="ph ph-map-pin text-brand text-lg"></i> Localização
                 </h3>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <!-- Linha 1 -->
+                    <div class="md:col-span-5">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Logradouro</span>
+                        <span class="text-slate-800 text-sm truncate" title="{{ company.address }}">{{ company.address }}</span>
+                    </div>
                     <div class="md:col-span-2">
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Logradouro</span>
-                        <span class="text-slate-800 font-medium">{{ company.address }}, {{ company.number }} {{ company.complement }}</span>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Número</span>
+                        <span class="text-slate-800 text-sm">{{ company.number }}</span>
                     </div>
-                    <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Bairro</span>
-                        <span class="text-slate-800 font-medium">{{ company.neighborhood }}</span>
+                    <div class="md:col-span-5">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Complemento</span>
+                        <span class="text-slate-800 text-sm truncate" title="{{ company.complement }}">{{ company.complement|default:"-" }}</span>
                     </div>
-                    <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Cidade/UF</span>
-                        <span class="text-slate-800 font-medium">{{ company.city }} / {{ company.state }}</span>
+
+                    <!-- Linha 2 -->
+                    <div class="md:col-span-4">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Bairro</span>
+                        <span class="text-slate-800 text-sm">{{ company.neighborhood }}</span>
                     </div>
-                    <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">CEP</span>
-                        <span class="text-slate-800 font-medium">{{ company.zip_code }}</span>
+                    <div class="md:col-span-5">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cidade / UF</span>
+                        <span class="text-slate-800 text-sm">{{ company.city }} / {{ company.state }}</span>
+                    </div>
+                    <div class="md:col-span-3">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">CEP</span>
+                        <span class="text-slate-800 text-sm">{{ company.zip_code }}</span>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        <!-- Coluna Direita (Lateral) -->
+        <!-- COLUNA DIREITA -->
         <div class="space-y-6">
             
-            <!-- Card Contato -->
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
-                    <i class="ph ph-phone text-brand"></i> Contato
-                </h3>
-                <ul class="space-y-4">
-                    <!-- Email -->
-                    <li class="flex items-start gap-3">
-                        <div class="mt-1 text-slate-400"><i class="ph ph-envelope-simple text-lg"></i></div>
-                        <div class="flex-1 overflow-hidden">
-                            <span class="block text-xs font-bold text-slate-400 uppercase">Email</span>
-                            <div class="flex items-center justify-between">
-                                <span class="text-slate-600 truncate" title="{{ company.email }}">{{ company.email|default:"Não informado" }}</span>
-                                {% if company.email %}
-                                    <!-- Padronizado: Cinza -> Brand -->
-                                    <button onclick="copyText('{{ company.email }}', this)" class="text-slate-300 hover:text-brand p-1 transition-colors">
-                                        <i class="ph ph-copy text-lg"></i>
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- Telefone -->
-                    <li class="flex items-start gap-3">
-                        <div class="mt-1 text-slate-400"><i class="ph ph-phone text-lg"></i></div>
-                        <div>
-                            <span class="block text-xs font-bold text-slate-400 uppercase">Telefone</span>
-                            {% if company.phone %}
-                                <div class="flex items-center gap-2">
-                                    <span class="text-slate-600">{{ company.phone }}</span>
-                                    <!-- Padronizado: Cinza -> Verde ao passar mouse -->
-                                    <button onclick="openWhatsapp('{{ company.phone }}')" class="text-slate-300 hover:text-green-600 p-1 transition-colors" title="Abrir no WhatsApp">
-                                        <i class="ph ph-whatsapp-logo text-lg"></i>
-                                    </button>
-                                </div>
-                            {% else %}
-                                <span class="text-slate-600">Não informado</span>
-                            {% endif %}
-                        </div>
-                    </li>
-
-                    <li class="flex items-start gap-3">
-                        <div class="mt-1 text-slate-400"><i class="ph ph-globe text-lg"></i></div>
-                        <div>
-                            <span class="block text-xs font-bold text-slate-400 uppercase">Website</span>
-                            {% if company.website %}
-                                <a href="{{ company.website }}" target="_blank" class="text-brand hover:underline truncate block max-w-[200px]">{{ company.website }}</a>
-                            {% else %}
-                                <span class="text-slate-600">-</span>
-                            {% endif %}
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Card Sócios -->
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
-                    <i class="ph ph-users-three text-brand"></i> Sócios
+            <!-- 3. CONTATO -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="ph ph-phone text-brand text-lg"></i> Contato
                 </h3>
                 
-                {% if company.partners_list.exists %}
-                    <ul class="space-y-3">
-                        {% for partner in company.partners_list.all %}
-                            <li class="flex items-start justify-between pb-3 border-b border-gray-50 last:border-0 last:pb-0">
-                                <div class="flex-1 overflow-hidden">
-                                    <p class="text-sm font-bold text-slate-700 truncate">{{ partner.name }}</p>
+                <div class="space-y-4">
+                    <!-- Email -->
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</span>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-700 text-sm truncate mr-2">{{ company.email|default:"-" }}</span>
+                            {% if company.email %}
+                                <!-- PADRÃO CLARO -->
+                                <button onclick="copyText('{{ company.email }}', this)" class="text-slate-300 hover:text-brand transition-colors" title="Copiar">
+                                    <i class="ph ph-copy text-lg"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Telefones -->
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Telefones</span>
+                        
+                        <div class="space-y-1"> 
+                            {% if company.phone %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-700 text-sm">{{ company.phone }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <!-- PADRÃO CLARO -->
+                                        <button onclick="copyText('{{ company.phone }}', this)" class="text-slate-300 hover:text-brand transition-colors" title="Copiar">
+                                            <i class="ph ph-copy text-lg"></i>
+                                        </button>
+                                        <button onclick="openWhatsapp('{{ company.phone }}')" class="text-slate-300 hover:text-green-600 transition-colors" title="WhatsApp">
+                                            <i class="ph ph-whatsapp-logo text-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if company.phone_2 %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-700 text-sm">{{ company.phone_2 }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <!-- PADRÃO CLARO -->
+                                        <button onclick="copyText('{{ company.phone_2 }}', this)" class="text-slate-300 hover:text-brand transition-colors" title="Copiar">
+                                            <i class="ph ph-copy text-lg"></i>
+                                        </button>
+                                        <button onclick="openWhatsapp('{{ company.phone_2 }}')" class="text-slate-300 hover:text-green-600 transition-colors" title="WhatsApp">
+                                            <i class="ph ph-whatsapp-logo text-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if not company.phone and not company.phone_2 %}
+                            <span class="text-slate-400 text-sm italic">Nenhum telefone.</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Site -->
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Website</span>
+                        {% if company.website %}
+                            <div class="flex items-center gap-2">
+                                <i class="ph ph-globe text-slate-300"></i>
+                                <a href="{{ company.website }}" target="_blank" class="text-brand hover:underline text-sm truncate block">{{ company.website }}</a>
+                            </div>
+                        {% else %}
+                            <span class="text-slate-400 text-sm">-</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. SÓCIOS -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col max-h-[450px]">
+                <div class="p-6 pb-3 bg-white border-b border-gray-100">
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                        <i class="ph ph-users-three text-brand text-lg"></i> Sócios
+                    </h3>
+                </div>
+                
+                <div class="overflow-y-auto p-6 pt-3 custom-scrollbar">
+                    {% if company.partners_list.exists %}
+                        <ul class="space-y-3"> 
+                            {% for partner in company.partners_list.all %}
+                                <li class="pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+                                    <p class="text-sm font-bold text-slate-800 mb-1">{{ partner.name }}</p>
                                     
-                                    <!-- Email do Sócio -->
+                                    <!-- Email -->
                                     {% if partner.email %}
-                                        <div class="flex items-center gap-2">
-                                            <p class="text-xs text-slate-500 truncate">{{ partner.email }}</p>
-                                            <!-- Padronizado: Cinza -> Brand -->
-                                            <button onclick="copyText('{{ partner.email }}', this)" class="text-slate-300 hover:text-brand p-1 transition-colors" title="Copiar Email">
-                                                <i class="ph ph-copy"></i>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="text-xs text-slate-500 truncate mr-2">{{ partner.email }}</span>
+                                            <!-- PADRÃO CLARO -->
+                                            <button onclick="copyText('{{ partner.email }}', this)" class="text-slate-300 hover:text-brand transition-colors" title="Copiar Email">
+                                                <i class="ph ph-copy text-lg"></i>
                                             </button>
                                         </div>
                                     {% endif %}
-                                </div>
-                                
-                                <div class="text-right ml-2">
-                                    <span class="text-xs font-mono text-slate-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 whitespace-nowrap">
-                                        {{ partner.cpf }}
-                                    </span>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-slate-400 text-sm italic">Nenhum sócio informado.</p>
-                {% endif %}
+
+                                    <!-- Telefone -->
+                                    {% if partner.phone %}
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-slate-500">{{ partner.phone }}</span>
+                                            <div class="flex items-center gap-2">
+                                                <!-- PADRÃO CLARO NOVO -->
+                                                <button onclick="copyText('{{ partner.phone }}', this)" class="text-slate-300 hover:text-brand transition-colors" title="Copiar">
+                                                    <i class="ph ph-copy text-lg"></i>
+                                                </button>
+                                                <button onclick="openWhatsapp('{{ partner.phone }}')" class="text-slate-300 hover:text-green-600 transition-colors" title="WhatsApp">
+                                                    <i class="ph ph-whatsapp-logo text-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-slate-400 text-sm italic text-center py-2">Nenhum sócio.</p>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- Auditoria -->
-            <div class="p-4 rounded-lg bg-gray-50 border border-gray-100 text-xs text-slate-400 space-y-1">
-                 <p class="flex justify-between">
-                     <span>Cadastrado no Sistema:</span> 
-                     <span class="font-mono">{{ company.created_at|date:"d/m/Y" }}</span>
-                 </p>
-                <p class="flex justify-between">
-                    <span>Última atualização:</span> 
-                    <span class="font-mono">{{ company.updated_at|date:"d/m/Y H:i" }}</span>
-                </p>
-                <p class="flex justify-between pt-1 border-t border-gray-200/50 mt-1">
+            <!-- 5. AUDITORIA -->
+            <div class="px-6 py-4 rounded-lg bg-gray-50 border border-gray-200 text-[10px] text-slate-400 uppercase tracking-wide space-y-1">
+                 <div class="flex justify-between">
+                     <span>Cadastro:</span> 
+                     <span class="font-mono text-slate-500">{{ company.created_at|date:"d/m/Y" }}</span>
+                 </div>
+                <div class="flex justify-between">
+                    <span>Update:</span> 
+                    <span class="font-mono text-slate-500">{{ company.updated_at|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="flex justify-between pt-1 border-t border-gray-200/50 mt-1">
                     <span>Por:</span> 
-                    <span>{{ company.updated_by.name|default:company.updated_by.email|default:"Sistema" }}</span>
-                </p>
+                    <span class="font-medium text-slate-600 normal-case truncate ml-2 max-w-[150px]">
+                        {{ company.updated_by.name|default:company.updated_by.email|default:"Sistema" }}
+                    </span>
+                </div>
             </div>
 
         </div>
@@ -220,21 +266,14 @@
     </div>
 </div>
 
-<!-- SCRIPTS DE UX -->
 <script>
     function copyText(text, btnElement) {
         if (!text) return;
-
         navigator.clipboard.writeText(text).then(() => {
             const icon = btnElement.querySelector('i');
             const originalClass = icon.className;
-            
-            // Feedback verde discreto
             icon.className = "ph ph-check text-green-500 text-lg";
-            
-            setTimeout(() => {
-                icon.className = originalClass;
-            }, 2000);
+            setTimeout(() => { icon.className = originalClass; }, 1500);
         }).catch(err => console.error('Erro:', err));
     }
 
@@ -245,5 +284,12 @@
         window.open(`https://wa.me/${cleanPhone}`, '_blank');
     }
 </script>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
+    .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #d1d5db; }
+</style>
 
 {% endblock %}

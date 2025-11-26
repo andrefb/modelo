@@ -1,0 +1,2864 @@
+=== ESTRUTURA DO PROJETO DJANGO ===
+./
+    .gitignore
+    manage.py
+    requirements.txt
+    accounts/
+        admin.py
+        apps.py
+        forms.py
+        models.py
+        tests.py
+        views.py
+        __init__.py
+        migrations/
+            0001_initial.py
+            0002_remove_customuser_first_name_and_more.py
+            __init__.py
+    companies/
+        admin.py
+        apps.py
+        decorators.py
+        forms.py
+        middleware.py
+        models.py
+        tests.py
+        urls.py
+        views.py
+        __init__.py
+        migrations/
+            0001_initial.py
+            0002_remove_company_partners_partner.py
+            0003_company_deactivated_at_company_deactivated_by_and_more.py
+            0004_alter_company_is_active.py
+            __init__.py
+    core/
+        asgi.py
+        middleware.py
+        settings.py
+        urls.py
+        wsgi.py
+        __init__.py
+    templates/
+        base.html
+        base_auth.html
+        account/
+            base_confirm_code.html
+            login.html
+            signup.html
+            verification_sent.html
+        companies/
+            company_detail.html
+            company_update.html
+            create_company.html
+            includes/
+                form_fields.html
+        includes/
+            mobile-header.html
+            sidebar.html
+            topbar.html
+        pages/
+            home.html
+
+
+=== CONTEÚDO DOS ARQUIVOS ===
+
+
+--- INICIO DO ARQUIVO: .\manage.py ---
+#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
+import os
+import sys
+
+
+def main():
+    """Run administrative tasks."""
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and "
+            "available on your PYTHONPATH environment variable? Did you "
+            "forget to activate a virtual environment?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+    main()
+
+--- FIM DO ARQUIVO: .\manage.py ---
+
+
+--- INICIO DO ARQUIVO: .\requirements.txt ---
+[Arquivo binário ou erro de leitura]
+--- FIM DO ARQUIVO: .\requirements.txt ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\admin.py ---
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import CustomUser
+from .forms import CustomUserCreationForm, CustomUserChangeForm
+
+@admin.register(CustomUser)
+class CustomUserAdmin(UserAdmin):
+    add_form = CustomUserCreationForm
+    form = CustomUserChangeForm
+    model = CustomUser   
+    
+    list_display = ['email', 'name', 'phone', 'is_staff', 'is_active']
+    list_filter = ['is_staff', 'is_active']
+    ordering = ['email']
+    search_fields = ['email', 'name']
+
+    # EDIÇÃO
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Informações Pessoais', {'fields': ('name', 'phone')}),
+        ('Permissões', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Datas Importantes', {'fields': ('last_login', 'date_joined')}),
+    )
+
+    # CRIAÇÃO (Adicionar)
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'name', 'phone', 'password1', 'password2'),
+        }),
+    )
+--- FIM DO ARQUIVO: .\accounts\admin.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\apps.py ---
+from django.apps import AppConfig
+
+
+class AccountsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'accounts'
+
+--- FIM DO ARQUIVO: .\accounts\apps.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\forms.py ---
+from django import forms
+from allauth.account.forms import SignupForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from .models import CustomUser
+
+class CustomSignupForm(SignupForm):
+    name = forms.CharField(label='Nome Completo', max_length=255, widget=forms.TextInput(attrs={'placeholder': 'Ex: João da Silva'}))
+    phone = forms.CharField(label='Telefone', max_length=20, widget=forms.TextInput(attrs={'placeholder': '(11) 99999-9999'}))
+
+    def save(self, request):
+        user = super(CustomSignupForm, self).save(request)
+        user.name = self.cleaned_data['name']
+        user.phone = self.cleaned_data['phone']
+        user.save()
+        return user
+
+# accounts/forms.py
+class CustomUserCreationForm(UserCreationForm):
+    # NÃO precisa redeclarar!  O UserCreationForm já tem password1 e password2
+    
+    class Meta:
+        model = CustomUser
+        fields = ('email', 'name', 'phone')
+    
+    def clean_password2(self):
+        # Validação de confirmação já vem do UserCreationForm
+        return super().clean_password2()
+
+    def save(self, commit=True):
+        # Garante que a senha seja salva criptografada
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user
+    
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        
+        # Remove espaços duplos
+        name = ' '.join(name. split())
+        
+        # Capitaliza (opcional, mas elegante)
+        # name = name.title()
+        
+        if len(name) < 3:
+            raise forms.ValidationError('Nome deve ter pelo menos 3 caracteres.')
+        
+        return name
+
+class CustomUserChangeForm(UserChangeForm):
+    class Meta:
+        model = CustomUser
+        fields = ('email', 'name', 'phone')
+
+
+--- FIM DO ARQUIVO: .\accounts\forms.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\models.py ---
+from django.db import models
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+
+# 1. O Manager (O "Gerente" que sabe criar usuários sem username)
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('O Email é obrigatório')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
+
+# 2. O Modelo de Usuário (A Tabela no Banco)
+class CustomUser(AbstractUser):
+    username = None  
+    first_name = None 
+    last_name = None 
+    email = models.EmailField('Endereço de Email', unique=True, db_index=True)
+    
+    # Campos novos
+    name = models.CharField('Nome Completo', max_length=255)
+    phone = models.CharField('Telefone', max_length=20, blank=True)
+
+    # Configurações do Django
+    USERNAME_FIELD = 'email'  # O login será pelo email
+    REQUIRED_FIELDS = ['name']  # Campos obrigatórios no terminal (createsuperuser)
+
+    objects = CustomUserManager()
+
+    def get_short_name(self):    
+        return self.name.split()[0] if self.name else self.email.split('@')[0]
+
+    def get_full_name(self):        
+        return self.name or self.email
+
+    def __str__(self):
+        return self.email
+--- FIM DO ARQUIVO: .\accounts\models.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\tests.py ---
+from django.test import TestCase
+
+# Create your tests here.
+
+--- FIM DO ARQUIVO: .\accounts\tests.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\views.py ---
+from django.shortcuts import render
+
+# Create your views here.
+
+--- FIM DO ARQUIVO: .\accounts\views.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\__init__.py ---
+
+--- FIM DO ARQUIVO: .\accounts\__init__.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\migrations\0001_initial.py ---
+# Generated by Django 5.2.8 on 2025-11-21 21:43
+
+import django.utils.timezone
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('auth', '0012_alter_user_first_name_max_length'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='CustomUser',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('password', models.CharField(max_length=128, verbose_name='password')),
+                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
+                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
+                ('first_name', models.CharField(blank=True, max_length=150, verbose_name='first name')),
+                ('last_name', models.CharField(blank=True, max_length=150, verbose_name='last name')),
+                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
+                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
+                ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
+                ('email', models.EmailField(max_length=254, unique=True, verbose_name='Endereço de Email')),
+                ('name', models.CharField(max_length=255, verbose_name='Nome Completo')),
+                ('phone', models.CharField(blank=True, max_length=20, verbose_name='Telefone')),
+                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
+                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+            ],
+            options={
+                'verbose_name': 'user',
+                'verbose_name_plural': 'users',
+                'abstract': False,
+            },
+        ),
+    ]
+
+--- FIM DO ARQUIVO: .\accounts\migrations\0001_initial.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\migrations\0002_remove_customuser_first_name_and_more.py ---
+# Generated by Django 5.2.8 on 2025-11-26 14:24
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('accounts', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.RemoveField(
+            model_name='customuser',
+            name='first_name',
+        ),
+        migrations.RemoveField(
+            model_name='customuser',
+            name='last_name',
+        ),
+        migrations.AlterField(
+            model_name='customuser',
+            name='email',
+            field=models.EmailField(db_index=True, max_length=254, unique=True, verbose_name='Endereço de Email'),
+        ),
+    ]
+
+--- FIM DO ARQUIVO: .\accounts\migrations\0002_remove_customuser_first_name_and_more.py ---
+
+
+--- INICIO DO ARQUIVO: .\accounts\migrations\__init__.py ---
+
+--- FIM DO ARQUIVO: .\accounts\migrations\__init__.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\admin.py ---
+from django.contrib import admin
+from . models import Company, Membership, Partner
+
+
+class MembershipInline(admin.TabularInline):
+    model = Membership
+    extra = 0
+    autocomplete_fields = ['user']
+    readonly_fields = ['date_joined']
+    fields = ['user', 'role', 'is_active', 'date_joined']
+
+
+class PartnerInline(admin.TabularInline):
+    model = Partner
+    extra = 0
+
+
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    # --- Listagem ---
+    list_display = ['get_name', 'cnpj', 'city', 'state', 'is_active', 'member_count', 'updated_at']
+    list_filter = ['is_active', 'state', 'created_at']
+    search_fields = ['legal_name', 'trade_name', 'cnpj']
+    
+    # --- Formulário ---
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('cnpj', 'legal_name', 'trade_name', 'state_registration')
+        }),
+        ('Contato', {
+            'fields': ('email', 'phone', 'website')
+        }),
+        ('Endereço', {
+            'fields': ('zip_code', 'address', 'number', 'complement', 'neighborhood', 'city', 'state')
+        }),
+        ('Status', {
+            'fields': ('is_active',),
+            'description': '⚠️ Desativar a empresa desativa automaticamente todos os membros.'
+        }),
+        ('Auditoria', {
+            'fields': ('created_at', 'updated_at', 'updated_by', 'deactivated_at', 'deactivated_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'updated_at', 'updated_by', 'deactivated_at', 'deactivated_by']
+    inlines = [MembershipInline, PartnerInline]
+    actions = ['deactivate_companies', 'reactivate_companies']
+
+    def get_name(self, obj):
+        return str(obj)
+    get_name.short_description = 'Empresa'
+
+    def member_count(self, obj):
+        return obj.memberships.filter(is_active=True).count()
+    member_count.short_description = 'Membros Ativos'
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        """Bloqueia deleção - força uso do soft delete"""
+        return False
+
+    @admin.action(description="🚫 Desativar empresas selecionadas")
+    def deactivate_companies(self, request, queryset):
+        count = 0
+        for company in queryset. filter(is_active=True):
+            company.soft_delete(user=request.user)
+            count += 1
+        self. message_user(request, f"✅ {count} empresa(s) desativada(s).  Membros também foram desativados.")
+
+    @admin.action(description="✅ Reativar empresas selecionadas")
+    def reactivate_companies(self, request, queryset):
+        count = 0
+        for company in queryset.filter(is_active=False):
+            company.reactivate()
+            count += 1
+        self.message_user(request, f"✅ {count} empresa(s) reativada(s). Reative os membros manualmente se necessário.")
+
+
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    # --- Listagem ---
+    list_display = ['user', 'company', 'role', 'is_active', 'date_joined']
+    list_filter = ['role', 'is_active', 'company']
+    search_fields = ['user__email', 'user__name', 'company__legal_name']
+    autocomplete_fields = ['user', 'company']
+    
+    # --- Ações ---
+    actions = ['deactivate_members', 'reactivate_members']
+
+    @admin.action(description="🚫 Desativar membros selecionados")
+    def deactivate_members(self, request, queryset):
+        count = queryset.filter(is_active=True).update(is_active=False)
+        self.message_user(request, f"✅ {count} membro(s) desativado(s).")
+
+    @admin.action(description="✅ Reativar membros selecionados")
+    def reactivate_members(self, request, queryset):
+        # Só reativa se a empresa também estiver ativa
+        count = 0
+        for membership in queryset.filter(is_active=False):
+            if membership.company.is_active:
+                membership.is_active = True
+                membership. save(update_fields=['is_active'])
+                count += 1
+            else:
+                self.message_user(
+                    request, 
+                    f"⚠️ {membership.user.email} não foi reativado pois a empresa {membership.company} está inativa.",
+                    level='WARNING'
+                )
+        if count:
+            self.message_user(request, f"✅ {count} membro(s) reativado(s).")
+
+
+@admin.register(Partner)
+class PartnerAdmin(admin. ModelAdmin):
+    list_display = ['name', 'cpf', 'company', 'email', 'phone']
+    list_filter = ['company']
+    search_fields = ['name', 'cpf', 'company__legal_name']
+    autocomplete_fields = ['company']
+--- FIM DO ARQUIVO: .\companies\admin.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\apps.py ---
+from django.apps import AppConfig
+
+
+class CompaniesConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'companies'
+
+--- FIM DO ARQUIVO: .\companies\apps.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\decorators.py ---
+from django.core.exceptions import PermissionDenied
+from functools import wraps
+from .models import Membership
+
+def role_required(allowed_roles):
+    """
+    Decorador para restringir acesso baseado no Cargo (Role) na empresa atual.
+    Uso: @role_required(['admin', 'financial'])
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            # O middleware já garante que request.membership existe se tiver empresa
+            if not request.membership:
+                 raise PermissionDenied
+            
+            if request.membership.role not in allowed_roles:
+                # Opcional: Redirecionar para uma página de "Sem Permissão" amigável
+                # ou apenas lançar o erro 403 padrão do Django
+                raise PermissionDenied("Você não tem permissão para acessar esta área.")
+                
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
+--- FIM DO ARQUIVO: .\companies\decorators.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\forms.py ---
+from django import forms
+from django.forms import inlineformset_factory # <--- Importe isso
+from .models import Company, Partner
+
+class CompanyCreateForm(forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = [
+            'cnpj', 'legal_name', 'trade_name', 'state_registration',
+            'phone', 'email', 'website',
+            'zip_code', 'address', 'number', 'complement', 'neighborhood', 'city', 'state',
+            # Note que removemos 'partners' daqui, pois agora é uma tabela separada
+        ]
+
+# Formulário individual do Sócio
+class PartnerForm(forms.ModelForm):
+    class Meta:
+        model = Partner
+        fields = ['name', 'cpf', 'email', 'phone']
+
+# A "Fábrica" de lista de sócios
+PartnerFormSet = inlineformset_factory(
+    Company, 
+    Partner,
+    form=PartnerForm,
+    extra=0,          # Começa sem linhas vazias (adicionamos via botão)
+    can_delete=True   # Permite deletar
+)
+--- FIM DO ARQUIVO: .\companies\forms.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\middleware.py ---
+from django.shortcuts import redirect
+from django.urls import reverse
+from . models import Membership
+
+
+class CompanyMiddleware:
+    """
+    Middleware que injeta a empresa ativa no request.
+    Só permite acesso se usuário E empresa E membership estiverem ativos.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # 1. Se não estiver logado, passa direto
+        if not request.user.is_authenticated:
+            return self.get_response(request)
+
+        # 2.  Rotas isentas
+        path = request.path_info
+        exempt_paths = [
+            reverse('create_company'),
+            '/admin/',
+            '/accounts/',
+            '/static/',
+            '/media/',
+        ]
+        
+        if any(path.startswith(p) for p in exempt_paths):
+            return self.get_response(request)
+
+        # 3. Tenta pegar empresa da sessão
+        company_id = request.session.get('company_id')
+        active_company = None
+        membership = None
+
+        if company_id:
+            try:
+                membership = Membership.objects.select_related('company').get(
+                    user=request.user,
+                    company__id=company_id,
+                    company__is_active=True,
+                    is_active=True
+                )
+                active_company = membership. company
+            except Membership.DoesNotExist:
+                if 'company_id' in request. session:
+                    del request. session['company_id']
+
+        # 4.  Fallback: primeira empresa ativa
+        if not active_company:
+            membership = Membership.objects.select_related('company').filter(
+                user=request.user,
+                company__is_active=True,
+                is_active=True
+            ).first()
+            
+            if membership:
+                active_company = membership.company
+                request.session['company_id'] = str(active_company.id)
+
+        # 5. Decisão
+        if active_company:
+            request.company = active_company
+            request.membership = membership
+        else:
+            return redirect('create_company')
+
+        return self.get_response(request)
+--- FIM DO ARQUIVO: .\companies\middleware.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\models.py ---
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+import uuid
+
+
+class ActiveCompanyManager(models.Manager):
+    """Manager que retorna apenas empresas ativas"""
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
+
+class Company(models.Model):
+    STATE_CHOICES = [
+        ('AC', 'Acre'), ('AL', 'Alagoas'), ('AP', 'Amapá'), ('AM', 'Amazonas'),
+        ('BA', 'Bahia'), ('CE', 'Ceará'), ('DF', 'Distrito Federal'), ('ES', 'Espírito Santo'),
+        ('GO', 'Goiás'), ('MA', 'Maranhão'), ('MT', 'Mato Grosso'), ('MS', 'Mato Grosso do Sul'),
+        ('MG', 'Minas Gerais'), ('PA', 'Pará'), ('PB', 'Paraíba'), ('PR', 'Paraná'),
+        ('PE', 'Pernambuco'), ('PI', 'Piauí'), ('RJ', 'Rio de Janeiro'), ('RN', 'Rio Grande do Norte'),
+        ('RS', 'Rio Grande do Sul'), ('RO', 'Rondônia'), ('RR', 'Roraima'), ('SC', 'Santa Catarina'),
+        ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins')
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # --- Dados Obrigatórios ---
+    legal_name = models.CharField('Razão Social', max_length=255)
+    cnpj = models.CharField('CNPJ', max_length=20, unique=True)
+    
+    # --- Dados Opcionais ---
+    trade_name = models.CharField('Nome Fantasia', max_length=255, blank=True)
+    state_registration = models.CharField('Inscrição Estadual', max_length=20, blank=True)
+
+    # --- Contato ---
+    phone = models.CharField('Telefone', max_length=20, blank=True)
+    email = models.EmailField('Email Comercial', blank=True)
+    website = models.URLField('Site', blank=True)
+    
+    # --- Endereço Padrão BR ---
+    zip_code = models.CharField('CEP', max_length=10, blank=True)
+    address = models.CharField('Endereço (Logradouro)', max_length=255, blank=True)
+    number = models.CharField('Número', max_length=20, blank=True)
+    complement = models.CharField('Complemento', max_length=100, blank=True)
+    neighborhood = models.CharField('Bairro', max_length=100, blank=True)
+    city = models.CharField('Cidade', max_length=100, blank=True)
+    state = models.CharField('Estado', max_length=2, choices=STATE_CHOICES, blank=True)
+
+    # --- Soft Delete ---
+    is_active = models.BooleanField('Ativo? ', default=True, db_index=True)
+    deactivated_at = models.DateTimeField('Desativado em', null=True, blank=True)
+    deactivated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='companies_deactivated',
+        verbose_name='Desativado por'
+    )
+
+    # --- Auditoria ---
+    created_at = models. DateTimeField('Criado em', auto_now_add=True)
+    updated_at = models.DateTimeField('Última atualização', auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='companies_updates',
+        verbose_name='Atualizado por'
+    )
+    
+    # --- Relação com Usuários ---
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        through='Membership',
+        related_name='companies'
+    )
+
+    # --- Managers ---
+    objects = models.Manager()
+    active = ActiveCompanyManager()
+
+    class Meta:
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
+        ordering = ['trade_name', 'legal_name']
+
+    def __str__(self):
+        return self.trade_name if self.trade_name else self. legal_name
+
+    def soft_delete(self, user=None):
+        """
+        Desativa a empresa E todos os membros vinculados.
+        Analogia: Fechar a empresa = desligar todos os funcionários.
+        """
+        self.is_active = False
+        self.deactivated_at = timezone.now()
+        self. deactivated_by = user
+        self.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        
+        # Desativa TODOS os memberships (não exclui!)
+        self.memberships.update(is_active=False)
+
+    def reactivate(self):
+        """
+        Reativa a empresa, mas NÃO reativa membros automaticamente.
+        Analogia: Reabrir empresa não significa recontratar todo mundo.
+        """
+        self. is_active = True
+        self.deactivated_at = None
+        self.deactivated_by = None
+        self.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+
+
+class Membership(models.Model):
+    """
+    Vínculo entre Usuário e Empresa (o "crachá" do funcionário).
+    """
+    ROLE_ADMIN = 'admin'
+    ROLE_FINANCIAL = 'financial'
+    ROLE_BROKER = 'broker'
+    
+    ROLE_CHOICES = [
+        (ROLE_ADMIN, 'Administrador'),
+        (ROLE_FINANCIAL, 'Financeiro'),
+        (ROLE_BROKER, 'Corretor'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE,
+        related_name='memberships'
+    )
+    company = models.ForeignKey(
+        Company, 
+        on_delete=models. PROTECT,
+        related_name='memberships'
+    )
+    
+    role = models.CharField('Cargo / Perfil', max_length=20, choices=ROLE_CHOICES, default=ROLE_BROKER)
+    is_active = models.BooleanField('Ativo?', default=True)
+    date_joined = models.DateTimeField('Entrou em', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Membro'
+        verbose_name_plural = 'Membros'
+        unique_together = ('user', 'company')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.company} ({self.get_role_display()})"
+
+
+class Partner(models.Model):
+    """Sócios da empresa (dados do contrato social)"""
+    id = models. UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='partners_list')
+    
+    name = models.CharField('Nome Completo', max_length=255)
+    cpf = models. CharField('CPF', max_length=14)
+    email = models.EmailField('Email', blank=True)
+    phone = models.CharField('Telefone', max_length=20, blank=True)
+    
+    class Meta:
+        verbose_name = 'Sócio'
+        verbose_name_plural = 'Sócios'
+
+    def __str__(self):
+        return self.name
+--- FIM DO ARQUIVO: .\companies\models.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\tests.py ---
+from django.test import TestCase
+
+# Create your tests here.
+
+--- FIM DO ARQUIVO: .\companies\tests.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\urls.py ---
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('new/', views.create_company, name='create_company'),
+    path('profile/', views.company_detail, name='company_detail'),
+    path('profile/edit/', views.company_update, name='company_update'),
+]
+--- FIM DO ARQUIVO: .\companies\urls.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\views.py ---
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction # Importante para salvar Pai e Filhos juntos
+from .forms import CompanyCreateForm, PartnerFormSet # Importamos o Formset aqui
+from .models import Membership
+from .decorators import role_required
+
+@login_required
+def create_company(request):
+    # Lógica: Se o usuário postar dados
+    if request.method == 'POST':
+        form = CompanyCreateForm(request.POST)
+        formset = PartnerFormSet(request.POST) # Pega os dados dos sócios
+        
+        # Valida tanto a empresa quanto a lista de sócios
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic(): # Garante que salva tudo ou nada
+                # 1. Salva a empresa
+                company = form.save(commit=False)
+                company.updated_by = request.user
+                company.save()
+                
+                # 2. Cria o vínculo de Admin
+                Membership.objects.create(
+                    user=request.user,
+                    company=company,
+                    role=Membership.ROLE_ADMIN,
+                    is_active=True
+                )
+                
+                # 3. Salva os sócios vinculados a essa empresa
+                formset.instance = company
+                formset.save()
+                
+            messages.success(request, 'Empresa e sócios cadastrados com sucesso!')
+            return redirect('home')
+    else:
+        # Lógica: Se for o primeiro acesso (GET)
+        form = CompanyCreateForm()
+        formset = PartnerFormSet() # Formset vazio para adicionar itens
+
+    return render(request, 'companies/create_company.html', {
+        'form': form, 
+        'formset': formset
+    })
+
+@login_required
+@role_required([Membership.ROLE_ADMIN, Membership.ROLE_FINANCIAL])
+def company_detail(request):
+    # Esta é a view que estava faltando e causando o erro!
+    # O middleware já colocou a empresa em request.company
+    return render(request, 'companies/company_detail.html', {'company': request.company})
+
+@login_required
+@role_required([Membership.ROLE_ADMIN, Membership.ROLE_FINANCIAL])
+def company_update(request):
+    company = request.company
+    
+    if request.method == 'POST':
+        form = CompanyCreateForm(request.POST, instance=company)
+        # Passamos 'instance=company' para o formset saber quais sócios carregar
+        formset = PartnerFormSet(request.POST, instance=company) 
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                company = form.save(commit=False)
+                company.updated_by = request.user
+                company.save()
+                
+                formset.save() # Salva edições, novos e deleções
+            
+            messages.success(request, 'Dados atualizados com sucesso!')
+            return redirect('company_detail')
+    else:
+        form = CompanyCreateForm(instance=company)
+        formset = PartnerFormSet(instance=company)
+
+    return render(request, 'companies/company_update.html', {
+        'form': form,
+        'formset': formset
+    })
+--- FIM DO ARQUIVO: .\companies\views.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\__init__.py ---
+
+--- FIM DO ARQUIVO: .\companies\__init__.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\migrations\0001_initial.py ---
+# Generated by Django 5.2.8 on 2025-11-21 22:51
+
+import django.db.models.deletion
+import uuid
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Company',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('legal_name', models.CharField(max_length=255, verbose_name='Razão Social')),
+                ('cnpj', models.CharField(max_length=20, unique=True, verbose_name='CNPJ')),
+                ('trade_name', models.CharField(blank=True, max_length=255, verbose_name='Nome Fantasia')),
+                ('state_registration', models.CharField(blank=True, max_length=20, verbose_name='Inscrição Estadual')),
+                ('partners', models.TextField(blank=True, help_text='Nome dos sócios (separe por vírgula ou linha)', verbose_name='Sócios')),
+                ('phone', models.CharField(blank=True, max_length=20, verbose_name='Telefone')),
+                ('email', models.EmailField(blank=True, max_length=254, verbose_name='Email Comercial')),
+                ('website', models.URLField(blank=True, verbose_name='Site')),
+                ('zip_code', models.CharField(blank=True, max_length=10, verbose_name='CEP')),
+                ('address', models.CharField(blank=True, max_length=255, verbose_name='Endereço (Logradouro)')),
+                ('number', models.CharField(blank=True, max_length=20, verbose_name='Número')),
+                ('complement', models.CharField(blank=True, max_length=100, verbose_name='Complemento')),
+                ('neighborhood', models.CharField(blank=True, max_length=100, verbose_name='Bairro')),
+                ('city', models.CharField(blank=True, max_length=100, verbose_name='Cidade')),
+                ('state', models.CharField(blank=True, choices=[('AC', 'Acre'), ('AL', 'Alagoas'), ('AP', 'Amapá'), ('AM', 'Amazonas'), ('BA', 'Bahia'), ('CE', 'Ceará'), ('DF', 'Distrito Federal'), ('ES', 'Espírito Santo'), ('GO', 'Goiás'), ('MA', 'Maranhão'), ('MT', 'Mato Grosso'), ('MS', 'Mato Grosso do Sul'), ('MG', 'Minas Gerais'), ('PA', 'Pará'), ('PB', 'Paraíba'), ('PR', 'Paraná'), ('PE', 'Pernambuco'), ('PI', 'Piauí'), ('RJ', 'Rio de Janeiro'), ('RN', 'Rio Grande do Norte'), ('RS', 'Rio Grande do Sul'), ('RO', 'Rondônia'), ('RR', 'Roraima'), ('SC', 'Santa Catarina'), ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins')], max_length=2, verbose_name='Estado')),
+                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Criado em')),
+                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Última atualização')),
+                ('updated_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='companies_updates', to=settings.AUTH_USER_MODEL, verbose_name='Atualizado por')),
+            ],
+            options={
+                'verbose_name': 'Empresa',
+                'verbose_name_plural': 'Empresas',
+                'ordering': ['trade_name', 'legal_name'],
+            },
+        ),
+        migrations.CreateModel(
+            name='Membership',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('role', models.CharField(choices=[('admin', 'Administrador'), ('financial', 'Financeiro'), ('broker', 'Corretor')], default='broker', max_length=20, verbose_name='Cargo / Perfil')),
+                ('is_active', models.BooleanField(default=True, verbose_name='Ativo?')),
+                ('date_joined', models.DateTimeField(auto_now_add=True)),
+                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memberships', to='companies.company')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memberships', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'verbose_name': 'Membro',
+                'verbose_name_plural': 'Membros',
+                'unique_together': {('user', 'company')},
+            },
+        ),
+        migrations.AddField(
+            model_name='company',
+            name='members',
+            field=models.ManyToManyField(related_name='companies', through='companies.Membership', to=settings.AUTH_USER_MODEL),
+        ),
+    ]
+
+--- FIM DO ARQUIVO: .\companies\migrations\0001_initial.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\migrations\0002_remove_company_partners_partner.py ---
+# Generated by Django 5.2.8 on 2025-11-21 23:51
+
+import django.db.models.deletion
+import uuid
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('companies', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.RemoveField(
+            model_name='company',
+            name='partners',
+        ),
+        migrations.CreateModel(
+            name='Partner',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('name', models.CharField(max_length=255, verbose_name='Nome Completo')),
+                ('cpf', models.CharField(max_length=14, verbose_name='CPF')),
+                ('email', models.EmailField(blank=True, max_length=254, verbose_name='Email')),
+                ('phone', models.CharField(blank=True, max_length=20, verbose_name='Telefone')),
+                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='partners_list', to='companies.company')),
+            ],
+            options={
+                'verbose_name': 'Sócio',
+                'verbose_name_plural': 'Sócios',
+            },
+        ),
+    ]
+
+--- FIM DO ARQUIVO: .\companies\migrations\0002_remove_company_partners_partner.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\migrations\0003_company_deactivated_at_company_deactivated_by_and_more.py ---
+# Generated by Django 5.2.8 on 2025-11-26 14:42
+
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('companies', '0002_remove_company_partners_partner'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='company',
+            name='deactivated_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Desativado em'),
+        ),
+        migrations.AddField(
+            model_name='company',
+            name='deactivated_by',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='companies_deactivated', to=settings.AUTH_USER_MODEL, verbose_name='Desativado por'),
+        ),
+        migrations.AddField(
+            model_name='company',
+            name='is_active',
+            field=models.BooleanField(db_index=True, default=True, verbose_name='Ativo?'),
+        ),
+        migrations.AlterField(
+            model_name='membership',
+            name='company',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='memberships', to='companies.company'),
+        ),
+        migrations.AlterField(
+            model_name='membership',
+            name='date_joined',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Entrou em'),
+        ),
+    ]
+
+--- FIM DO ARQUIVO: .\companies\migrations\0003_company_deactivated_at_company_deactivated_by_and_more.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\migrations\0004_alter_company_is_active.py ---
+# Generated by Django 5.2.8 on 2025-11-26 14:52
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('companies', '0003_company_deactivated_at_company_deactivated_by_and_more'),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name='company',
+            name='is_active',
+            field=models.BooleanField(db_index=True, default=True, verbose_name='Ativo? '),
+        ),
+    ]
+
+--- FIM DO ARQUIVO: .\companies\migrations\0004_alter_company_is_active.py ---
+
+
+--- INICIO DO ARQUIVO: .\companies\migrations\__init__.py ---
+
+--- FIM DO ARQUIVO: .\companies\migrations\__init__.py ---
+
+
+--- INICIO DO ARQUIVO: .\core\asgi.py ---
+"""
+ASGI config for core project.
+
+It exposes the ASGI callable as a module-level variable named ``application``.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
+"""
+
+import os
+
+from django.core.asgi import get_asgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+
+application = get_asgi_application()
+
+--- FIM DO ARQUIVO: .\core\asgi.py ---
+
+
+--- INICIO DO ARQUIVO: .\core\middleware.py ---
+# core/middleware.py
+from django.shortcuts import redirect
+from django.conf import settings
+from django.urls import reverse
+
+class LoginRequiredMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # 1. Lista de caminhos permitidos (Públicos)
+        # Precisamos deixar o usuário acessar a tela de login, cadastro e o admin
+        public_paths = [
+            '/accounts/',  # Rotas do Allauth (Login, Signup, Reset Senha)
+            '/admin/',     # Django Admin
+            '/static/',    # Arquivos estáticos (CSS/JS)
+            '/media/',     # Uploads
+        ]
+
+        # 2. Verifica se o caminho atual começa com algum dos permitidos
+        path = request.path_info
+        is_public = any(path.startswith(p) for p in public_paths)
+
+        # 3. A Lógica do Porteiro:
+        # Se o usuário NÃO está logado E a página NÃO é pública...
+        if not request.user.is_authenticated and not is_public:
+            # ...Redireciona para o Login
+            return redirect(settings.LOGIN_URL)
+
+        # Se passou no teste, segue o fluxo normal
+        response = self.get_response(request)
+        return response
+--- FIM DO ARQUIVO: .\core\middleware.py ---
+
+
+--- INICIO DO ARQUIVO: .\core\settings.py ---
+from pathlib import Path
+import os
+import environ
+
+# 1. Definição do diretório base
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 2. Leitura do .env (Forçando o caminho para funcionar no Windows)
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+# 3. Configurações de Segurança
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env.bool('DEBUG', default=False)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# 4. Aplicações Instaladas
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.sites', # Obrigatório para o Allauth
+    
+    # Allauth
+    'allauth',
+    'allauth.account',
+    
+    
+    # Libs de Terceiros
+    'storages', # AWS S3
+    'widget_tweaks',
+    
+    # Meus Apps
+    'accounts',
+    'companies',
+    
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Estáticos em Produção
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware', # Middleware do Allauth
+    'core.middleware.LoginRequiredMiddleware',
+    'companies.middleware.CompanyMiddleware', 
+]
+
+ROOT_URLCONF = 'core.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, "templates")],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request', # Necessário para o Allauth
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'core.wsgi.application'
+
+# 5. Banco de Dados (Conecta no Postgres via URL do .env)
+DATABASES = {
+    'default': env.db('DATABASE_URL')
+}
+
+# 6. Modelo de Usuário Customizado (Sem username, com nome e telefone)
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
+]
+
+# 7. Internacionalização (Brasil)
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Sao_Paulo'
+USE_I18N = True
+USE_TZ = True
+
+# 8. Arquivos Estáticos e Media (Configuração Híbrida Local/S3)
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Se houver chaves AWS no .env, usa S3 para upload de usuarios (Media)
+if env('AWS_ACCESS_KEY_ID', default=None):
+    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Desenvolvimento Local
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 9. Configurações do Allauth (MODERNIZADO E SEM WARNINGS)
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SITE_ID = 1
+
+# Define login apenas por email
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None 
+
+ACCOUNT_SIGNUP_FIELDS = [
+    'email*',        # O asterisco torna obrigatório
+    'password1*',    # Senha principal
+    'password2*',    # Confirmação de senha (repetir senha)
+]
+# Aponta para nosso formulário com Nome e Telefone
+ACCOUNT_FORMS = {
+    'signup': 'accounts.forms.CustomSignupForm',
+}
+
+# Verificação de email
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = True
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Meu Projeto] '
+
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = env. int('EMAIL_PORT', default=587)
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@seusite.com')
+
+
+
+# Redirecionamentos
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+LOGIN_URL = 'account_login' # Nome da rota de login do Allauth
+
+
+
+# Adicionar no settings. py:
+
+# ═══════════════════════════════════════════════════════════════
+# ALLAUTH - SEGURANÇA
+# ═══════════════════════════════════════════════════════════════
+
+# Tempo de expiração do código de verificação (padrão: 3 dias = muito!)
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 1  # 👈 Reduzir para 1 dia
+
+# ✅ NOVA SINTAXE (Allauth 65+)
+ACCOUNT_RATE_LIMITS = {
+    # Cooldown para reenvio de código de confirmação
+    "confirm_email": "180/3m",  # 180 segundos = 3 minutos
+    
+    # Proteção contra brute-force no login
+    "login_failed": "5/5m",  # 5 tentativas, bloqueio de 5 minutos
+}
+
+# Logout ao trocar senha (segurança)
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+
+# Impedir enumeração de usuários
+ACCOUNT_PREVENT_ENUMERATION = True  # 👈 IMPORTANTE!
+
+# Adicione ao settings.py
+# ✅ Melhor abordagem
+if env('REDIS_URL', default=None):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': env('REDIS_URL'),
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+
+
+import sentry_sdk
+
+if not DEBUG:
+    sentry_sdk. init(
+        dsn=env('SENTRY_DSN', default=''),
+        send_default_pii=True,
+        traces_sample_rate=0.1,  # 10% das transações
+    )
+    
+    # Headers de segurança
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+--- FIM DO ARQUIVO: .\core\settings.py ---
+
+
+--- INICIO DO ARQUIVO: .\core\urls.py ---
+
+from django.contrib import admin
+from django.urls import path, include
+from django.views.generic import TemplateView
+
+# ✅ Opção 1: Definir a função
+def trigger_error(request):
+    division_by_zero = 1 / 0  # Proposital para testar Sentry
+
+
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),
+    path('companies/', include('companies.urls')), # <--- Adicione isso
+    path('', TemplateView.as_view(template_name='pages/home.html'), name='home'),
+    path('sentry-debug/', trigger_error), 
+]
+
+--- FIM DO ARQUIVO: .\core\urls.py ---
+
+
+--- INICIO DO ARQUIVO: .\core\wsgi.py ---
+"""
+WSGI config for core project.
+
+It exposes the WSGI callable as a module-level variable named ``application``.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
+"""
+
+import os
+
+from django.core.wsgi import get_wsgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+
+application = get_wsgi_application()
+
+--- FIM DO ARQUIVO: .\core\wsgi.py ---
+
+
+--- INICIO DO ARQUIVO: .\core\__init__.py ---
+
+--- FIM DO ARQUIVO: .\core\__init__.py ---
+
+
+--- INICIO DO ARQUIVO: .\templates\base.html ---
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meu Projeto{% endblock %}</title>
+    
+    <!-- Tailwind CSS (Configurado para sua cor) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#015152', // Sua cor base
+                            light: '#026d6e',   // Um tom mais claro para hover
+                            dark: '#003839',    // Um tom mais escuro
+                            surface: '#f0fdfd', // Fundo bem clarinho combinando
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'], // Fonte moderna
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonte Inter (Google Fonts) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones (Phosphor Icons - Mais leves e bonitos que FontAwesome) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Transição suave para o menu mobile */
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 antialiased">
+
+    <div class="flex h-screen overflow-hidden bg-gray-50">
+        
+        <!-- 1. MENU LATERAL (SIDEBAR) -->
+        {% include 'includes/sidebar.html' %}
+
+        <!-- ÁREA PRINCIPAL -->
+        <div class="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+
+            <!-- 2. CABEÇALHO MOBILE (Só aparece no celular) -->
+            {% include 'includes/mobile-header.html' %}
+
+            <!-- 3. TOPBAR (Só aparece no Desktop) -->
+            {% include 'includes/topbar.html' %}
+
+            <!-- 4. CONTEÚDO DA PÁGINA -->
+            <main class="w-full flex-grow p-6">
+                {% if messages %}
+                    <div class="mb-4 space-y-2">
+                        {% for message in messages %}
+                            <div class="p-4 rounded-md text-sm font-medium 
+                                {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+                                {% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+                                {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </main>
+
+        </div>
+    </div>
+
+    <!-- Script para abrir/fechar menu mobile -->
+<!-- Script para abrir/fechar menu mobile (Lado Direito) -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        
+        function toggleSidebar() {
+            // Toggle da classe que empurra o menu para fora da tela (Direita)
+            sidebar.classList.toggle('translate-x-full');
+            
+            // Mostra/Esconde o fundo escuro
+            backdrop.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
+</body>
+</html>
+--- FIM DO ARQUIVO: .\templates\base.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\base_auth.html ---
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Acesso{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#015152',
+                            light: '#026d6e',
+                            dark: '#003839',
+                            surface: '#f0fdfd',
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 font-sans text-slate-800">
+
+    <!-- Card Centralizado -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        
+        <!-- Cabeçalho do Card -->
+        <div class="bg-brand p-8 text-center">
+            <div class="flex justify-center mb-4">
+                <i class="ph ph-hexagon text-5xl text-white opacity-90"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white tracking-wide">
+                {% block head_title %}Bem-vindo{% endblock %}
+            </h2>
+            <p class="text-brand-surface/80 text-sm mt-2">
+                {% block sub_title %}Acesse sua conta para continuar{% endblock %}
+            </p>
+        </div>
+
+        <!-- Corpo do Formulário -->
+        <div class="p-8">
+            
+            <!-- Mensagens de Erro/Sucesso -->
+            {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for message in messages %}
+                        <div class="p-3 rounded-lg text-sm font-medium text-center
+                            {% if message.tags == 'error' %}bg-red-50 text-red-600 border border-red-100
+                            {% else %}bg-green-50 text-green-600 border border-green-100{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+
+</body>
+</html>
+--- FIM DO ARQUIVO: .\templates\base_auth.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\account\base_confirm_code.html ---
+{% extends "base_auth.html" %}
+{% load i18n %}
+{% load account %}
+{% load widget_tweaks %}
+
+{% block head_title %}Código Enviado{% endblock %}
+{% block sub_title %}Verifique seu email{% endblock %}
+
+{% block content %}
+
+<!-- CORREÇÃO 1: action vazio faz o form enviar para a PRÓPRIA URL atual -->
+<form method="post" action="" class="space-y-6">
+    {% csrf_token %}
+
+    <div class="text-center">
+        <p class="text-sm text-slate-600">
+            Enviamos um código de verificação para o seu email.<br>
+            <strong>Digite-o abaixo para liberar seu acesso.</strong>
+        </p>
+    </div>
+
+    <!-- Loop do Formulário -->
+    {% for field in form %}
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest text-center mb-2">
+                Código de 6 Dígitos
+            </label>
+            
+            {% if field.errors %}
+                {% render_field field class="w-full px-4 py-4 text-center text-3xl font-mono font-bold tracking-[0.5em] text-red-600 border-2 border-red-300 bg-red-50 rounded-xl focus:ring-0 outline-none uppercase" placeholder="------" autofocus="autofocus" %}
+                <p class="mt-2 text-sm text-red-500 text-center font-medium">{{ field.errors.0 }}</p>
+            {% else %}
+                {% render_field field class="w-full px-4 py-4 text-center text-3xl font-mono font-bold tracking-[0.5em] text-brand border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-0 outline-none transition-all placeholder-gray-200 bg-white uppercase" placeholder="------" autocomplete="off" %}
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <button type="submit" class="w-full py-3 px-4 bg-brand hover:bg-brand-dark text-white font-bold rounded-lg shadow-lg shadow-brand/20 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+        <i class="ph ph-check-circle text-xl"></i>
+        VALIDAR CÓDIGO
+    </button>
+
+</form>
+
+<!-- CORREÇÃO 2: Botão de Reenviar usando a lógica nova do Allauth -->
+<div class="mt-8 pt-6 border-t border-gray-100 text-center">
+    <p class="text-xs text-slate-400 mb-3">Não recebeu?</p>
+    
+    <!-- O formulário de reenviar também posta na mesma URL, mas com action="resend" -->
+    <form method="post" action="" class="inline-block">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="resend">
+        
+        <button type="submit" class="text-sm font-semibold text-brand hover:text-brand-dark border border-brand/30 px-4 py-2 rounded-full hover:bg-brand-surface transition-colors">
+            Solicitar Novo Código
+        </button>
+    </form>
+
+    <!-- Botão de Cancelar/Logout (Caso o usuário queira trocar de conta) -->
+    <div class="mt-4">
+        <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'account_login' %}">
+            <button type="submit" class="text-xs text-slate-400 hover:text-red-500 underline">
+                Cancelar / Sair
+            </button>
+        </form>
+    </div>
+</div>
+
+
+<script>
+document.querySelector('input[name="code"]').addEventListener('input', function(e) {
+    // ✅ CORRETO - Permite letras (A-Z, a-z) e números (0-9)
+    const val = e.target.value.replace(/[^A-Za-z0-9]/g, '');
+    e.target. value = val. toUpperCase();
+    
+    // Auto-submit quando tiver 6 caracteres
+    if (val. length === 6) {
+        e.target.closest('form'). submit();
+    }
+});
+</script>
+
+
+{% endblock %}
+
+--- FIM DO ARQUIVO: .\templates\account\base_confirm_code.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\account\login.html ---
+{% extends "base_auth.html" %}
+{% load i18n %}
+{% load account %}
+{% load widget_tweaks %}
+
+{% block head_title %}Acessar Conta{% endblock %}
+{% block sub_title %}Gerencie seu projeto com segurança{% endblock %}
+
+{% block content %}
+
+<form class="login space-y-5" method="POST" action="{% url 'account_login' %}">
+    {% csrf_token %}
+
+    <!-- Renderização Automática dos Campos com Estilo -->
+    {% for field in form %}
+        {% if field.is_hidden %}
+            {{ field }}
+        {% else %}
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1 pl-1">
+                    {{ field.label }}
+                </label>
+                
+                {% if field.errors %}
+                    {% render_field field class="w-full px-4 py-3 rounded-lg border border-red-300 bg-red-50 text-red-900 placeholder-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none" placeholder=field.label %}
+                    <p class="mt-1 text-xs text-red-500 font-medium">{{ field.errors.0 }}</p>
+                {% else %}
+                    <!-- Campo Checkbox (Lembrar de mim) -->
+                    {% if field.widget_type == 'checkbox' %}
+                        <div class="flex items-center gap-2 mt-2">
+                            {% render_field field class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand" %}
+                            <span class="text-sm text-slate-600">{{ field.label }}</span>
+                        </div>
+                    {% else %}
+                    <!-- Campos Normais (Texto, Senha, Email) -->
+                        {% render_field field class="w-full px-4 py-3 rounded-lg border border-gray-200 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none bg-gray-50 focus:bg-white" placeholder=field.label %}
+                    {% endif %}
+                {% endif %}
+                
+                {% if field.help_text %}
+                    <p class="mt-1 text-xs text-gray-400">{{ field.help_text }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <!-- Link de Esqueceu Senha -->
+    <div class="flex justify-end">
+        <a href="{% url 'account_reset_password' %}" class="text-sm font-medium text-brand hover:text-brand-dark hover:underline transition-colors">
+            Esqueceu a senha?
+        </a>
+    </div>
+
+    <!-- Botão de Ação -->
+    <button type="submit" aria-label="Entrar na conta" class="w-full py-3 px-4 bg-brand hover:bg-brand-dark text-white font-semibold rounded-lg shadow-lg shadow-brand/30 transform active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
+        <i class="ph ph-sign-in text-xl"></i>
+        Entrar
+    </button>
+
+</form>
+
+<div class="mt-8 pt-6 border-t border-gray-100 text-center">
+    <p class="text-sm text-slate-500">
+        Não tem uma conta? 
+        <a href="{{ signup_url }}" class="font-bold text-brand hover:underline">Cadastre-se aqui</a>
+    </p>
+</div>
+
+{% endblock %}
+--- FIM DO ARQUIVO: .\templates\account\login.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\account\signup.html ---
+{% extends "base_auth.html" %}
+{% load i18n %}
+{% load account %}
+{% load widget_tweaks %}
+
+{% block head_title %}Criar Conta{% endblock %}
+{% block sub_title %}Junte-se a nós em segundos{% endblock %}
+
+{% block content %}
+
+<form class="signup space-y-4" id="signup_form" method="post" action="{% url 'account_signup' %}">
+    {% csrf_token %}
+
+    {% for field in form %}
+        {% if field.is_hidden %}
+            {{ field }}
+        {% else %}
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1 pl-1">
+                    {{ field.label }} {% if field.field.required %}<span class="text-brand">*</span>{% endif %}
+                </label>
+                
+                {% if field.errors %}
+                    {% render_field field class="w-full px-4 py-3 rounded-lg border border-red-300 bg-red-50 text-red-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none" placeholder=field.label %}
+                    <p class="mt-1 text-xs text-red-500 font-medium">{{ field.errors.0 }}</p>
+                {% else %}
+                    {% render_field field class="w-full px-4 py-3 rounded-lg border border-gray-200 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none bg-gray-50 focus:bg-white" placeholder=field.label %}
+                {% endif %}
+
+                {% if field.help_text %}
+                    <p class="mt-1 text-xs text-gray-400">{{ field.help_text|safe }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <button type="submit" class="w-full mt-4 py-3 px-4 bg-brand hover:bg-brand-dark text-white font-semibold rounded-lg shadow-lg shadow-brand/30 transform active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
+        <i class="ph ph-user-plus text-xl"></i>
+        Criar Conta
+    </button>
+
+</form>
+
+<div class="mt-6 pt-6 border-t border-gray-100 text-center">
+    <p class="text-sm text-slate-500">
+        Já tem uma conta? 
+        <a href="{{ login_url }}" class="font-bold text-brand hover:underline">Entre aqui</a>
+    </p>
+</div>
+
+{% endblock %}
+--- FIM DO ARQUIVO: .\templates\account\signup.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\account\verification_sent.html ---
+{% extends "base_auth.html" %}
+
+{% block head_title %}Email Enviado{% endblock %}
+{% block sub_title %}Cheque sua caixa de entrada{% endblock %}
+
+{% block content %}
+<div class="text-center space-y-6">
+    <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto">
+        <i class="ph ph-paper-plane-tilt text-4xl text-green-600"></i>
+    </div>
+
+    <p class="text-slate-600">
+        Enviamos um código de confirmação para seu endereço de email.
+    </p>
+
+    <a href="{% url 'account_confirm_email' %}" class="block w-full py-3 px-4 bg-brand text-white font-semibold rounded-lg hover:bg-brand-dark transition-colors">
+        Digitar Código
+    </a>
+</div>
+{% endblock %}
+--- FIM DO ARQUIVO: .\templates\account\verification_sent.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\companies\company_detail.html ---
+{% extends 'base.html' %}
+
+{% block title %}Minha Empresa{% endblock %}
+{% block page_title %}Perfil da Empresa{% endblock %}
+
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- Cabeçalho com Ações -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-brand/10 text-brand rounded-xl flex items-center justify-center">
+                <i class="ph ph-buildings text-3xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800">{{ company.trade_name|default:company.legal_name }}</h2>
+                <div class="flex items-center gap-2 mt-1 text-slate-500 text-sm">
+                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded border border-green-200">ATIVO</span>
+                    
+                    <!-- CNPJ no Topo (Padrão: Cinza -> Hover: Brand) -->
+                    <div class="flex items-center gap-1 ml-2 cursor-pointer group" onclick="copyText('{{ company.cnpj }}', this)" title="Clique para copiar">
+                        <i class="ph ph-hash text-slate-400"></i> 
+                        <span>{{ company.cnpj }}</span>
+                        <i class="ph ph-copy text-slate-300 group-hover:text-brand transition-colors"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <a href="{% url 'company_update' %}" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-slate-700 font-medium rounded-lg hover:bg-gray-50 hover:text-brand transition-colors shadow-sm">
+            <i class="ph ph-pencil-simple"></i>
+            Editar Dados
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Coluna Esquerda (Principal) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Card Identificação -->
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
+                    <i class="ph ph-identification-card text-brand"></i> Dados Cadastrais
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+
+                     <!-- CNPJ com Botão Padronizado -->
+                     <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">CNPJ</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-800 font-medium text-lg font-mono">{{ company.cnpj }}</span>
+                            <button onclick="copyText('{{ company.cnpj }}', this)" class="text-slate-300 hover:text-brand p-1 transition-colors" title="Copiar CNPJ">
+                                <i class="ph ph-copy text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                     <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Inscrição Estadual</span>
+                        <span class="text-slate-800 font-medium text-lg">{{ company.state_registration|default:"Isento/Não informado" }}</span>
+                    </div>
+
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Razão Social</span>
+                        <span class="text-slate-800 font-medium">{{ company.legal_name }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nome Fantasia</span>
+                        <span class="text-slate-800 font-medium">{{ company.trade_name|default:"-" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Endereço -->
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
+                    <i class="ph ph-map-pin text-brand"></i> Localização
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+                    <div class="md:col-span-2">
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Logradouro</span>
+                        <span class="text-slate-800 font-medium">{{ company.address }}, {{ company.number }} {{ company.complement }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Bairro</span>
+                        <span class="text-slate-800 font-medium">{{ company.neighborhood }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Cidade/UF</span>
+                        <span class="text-slate-800 font-medium">{{ company.city }} / {{ company.state }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">CEP</span>
+                        <span class="text-slate-800 font-medium">{{ company.zip_code }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Coluna Direita (Lateral) -->
+        <div class="space-y-6">
+            
+            <!-- Card Contato -->
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
+                    <i class="ph ph-phone text-brand"></i> Contato
+                </h3>
+                <ul class="space-y-4">
+                    <!-- Email -->
+                    <li class="flex items-start gap-3">
+                        <div class="mt-1 text-slate-400"><i class="ph ph-envelope-simple text-lg"></i></div>
+                        <div class="flex-1 overflow-hidden">
+                            <span class="block text-xs font-bold text-slate-400 uppercase">Email</span>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-600 truncate" title="{{ company.email }}">{{ company.email|default:"Não informado" }}</span>
+                                {% if company.email %}
+                                    <!-- Padronizado: Cinza -> Brand -->
+                                    <button onclick="copyText('{{ company.email }}', this)" class="text-slate-300 hover:text-brand p-1 transition-colors">
+                                        <i class="ph ph-copy text-lg"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Telefone -->
+                    <li class="flex items-start gap-3">
+                        <div class="mt-1 text-slate-400"><i class="ph ph-phone text-lg"></i></div>
+                        <div>
+                            <span class="block text-xs font-bold text-slate-400 uppercase">Telefone</span>
+                            {% if company.phone %}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-slate-600">{{ company.phone }}</span>
+                                    <!-- Padronizado: Cinza -> Verde ao passar mouse -->
+                                    <button onclick="openWhatsapp('{{ company.phone }}')" class="text-slate-300 hover:text-green-600 p-1 transition-colors" title="Abrir no WhatsApp">
+                                        <i class="ph ph-whatsapp-logo text-lg"></i>
+                                    </button>
+                                </div>
+                            {% else %}
+                                <span class="text-slate-600">Não informado</span>
+                            {% endif %}
+                        </div>
+                    </li>
+
+                    <li class="flex items-start gap-3">
+                        <div class="mt-1 text-slate-400"><i class="ph ph-globe text-lg"></i></div>
+                        <div>
+                            <span class="block text-xs font-bold text-slate-400 uppercase">Website</span>
+                            {% if company.website %}
+                                <a href="{{ company.website }}" target="_blank" class="text-brand hover:underline truncate block max-w-[200px]">{{ company.website }}</a>
+                            {% else %}
+                                <span class="text-slate-600">-</span>
+                            {% endif %}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Card Sócios -->
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
+                    <i class="ph ph-users-three text-brand"></i> Sócios
+                </h3>
+                
+                {% if company.partners_list.exists %}
+                    <ul class="space-y-3">
+                        {% for partner in company.partners_list.all %}
+                            <li class="flex items-start justify-between pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+                                <div class="flex-1 overflow-hidden">
+                                    <p class="text-sm font-bold text-slate-700 truncate">{{ partner.name }}</p>
+                                    
+                                    <!-- Email do Sócio -->
+                                    {% if partner.email %}
+                                        <div class="flex items-center gap-2">
+                                            <p class="text-xs text-slate-500 truncate">{{ partner.email }}</p>
+                                            <!-- Padronizado: Cinza -> Brand -->
+                                            <button onclick="copyText('{{ partner.email }}', this)" class="text-slate-300 hover:text-brand p-1 transition-colors" title="Copiar Email">
+                                                <i class="ph ph-copy"></i>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="text-right ml-2">
+                                    <span class="text-xs font-mono text-slate-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 whitespace-nowrap">
+                                        {{ partner.cpf }}
+                                    </span>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-slate-400 text-sm italic">Nenhum sócio informado.</p>
+                {% endif %}
+            </div>
+
+            <!-- Auditoria -->
+            <div class="p-4 rounded-lg bg-gray-50 border border-gray-100 text-xs text-slate-400 space-y-1">
+                 <p class="flex justify-between">
+                     <span>Cadastrado no Sistema:</span> 
+                     <span class="font-mono">{{ company.created_at|date:"d/m/Y" }}</span>
+                 </p>
+                <p class="flex justify-between">
+                    <span>Última atualização:</span> 
+                    <span class="font-mono">{{ company.updated_at|date:"d/m/Y H:i" }}</span>
+                </p>
+                <p class="flex justify-between pt-1 border-t border-gray-200/50 mt-1">
+                    <span>Por:</span> 
+                    <span>{{ company.updated_by.name|default:company.updated_by.email|default:"Sistema" }}</span>
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- SCRIPTS DE UX -->
+<script>
+    function copyText(text, btnElement) {
+        if (!text) return;
+
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = btnElement.querySelector('i');
+            const originalClass = icon.className;
+            
+            // Feedback verde discreto
+            icon.className = "ph ph-check text-green-500 text-lg";
+            
+            setTimeout(() => {
+                icon.className = originalClass;
+            }, 2000);
+        }).catch(err => console.error('Erro:', err));
+    }
+
+    function openWhatsapp(phone) {
+        if (!phone) return;
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length <= 11) cleanPhone = '55' + cleanPhone;
+        window.open(`https://wa.me/${cleanPhone}`, '_blank');
+    }
+</script>
+
+{% endblock %}
+--- FIM DO ARQUIVO: .\templates\companies\company_detail.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\companies\company_update.html ---
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Editar Empresa{% endblock %}
+{% block page_title %}Editar Dados da Empresa{% endblock %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    
+    <!-- Header -->
+    <div class="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="ph ph-pencil-simple text-brand"></i>
+            Atualizar Informações
+        </h2>
+        <a href="{% url 'company_detail' %}" class="text-sm text-slate-500 hover:text-red-600">Cancelar</a>
+    </div>
+
+    <form method="post" class="p-6 md:p-8">
+        {% csrf_token %}
+
+        <!-- AQUI ESTÁ A MÁGICA: Chamamos o arquivo que acabamos de criar -->
+        {% include 'companies/includes/form_fields.html' %}
+
+        <div class="pt-6 mt-8 border-t border-gray-100 flex items-center justify-end gap-4">
+            <a href="{% url 'company_detail' %}" class="px-6 py-2 text-slate-600 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</a>
+            <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors flex items-center gap-2">
+                <i class="ph ph-floppy-disk"></i>
+                Salvar Alterações
+            </button>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}
+--- FIM DO ARQUIVO: .\templates\companies\company_update.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\companies\create_company.html ---
+{% load static %}
+{% load widget_tweaks %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Empresa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { DEFAULT: '#015152', light: '#026d6e', dark: '#003839', surface: '#f0fdfd' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-6 font-sans text-slate-800">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        
+        <!-- Cabeçalho -->
+        <div class="bg-brand p-6 md:p-8 text-center md:text-left md:flex md:items-center md:justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2 justify-center md:justify-start">
+                    <i class="ph ph-buildings text-3xl"></i>
+                    Nova Empresa
+                </h2>
+                <p class="text-brand-surface/80 text-sm mt-1">
+                    Cadastre os dados da sua organização para começar.
+                </p>
+            </div>
+            <!-- Steps (Visual apenas) -->
+            <div class="hidden md:flex items-center gap-2 text-white/50 text-sm font-medium">
+                <span>1. Conta</span>
+                <i class="ph ph-caret-right"></i>
+                <span class="text-white font-bold">2. Empresa</span>
+                <i class="ph ph-caret-right"></i>
+                <span>3. Sucesso</span>
+            </div>
+        </div>
+
+        <!-- Formulário -->
+        <form method="post" class="p-6 md:p-8 space-y-8">
+            {% csrf_token %}
+
+              {% include 'companies/includes/form_fields.html' %}
+
+            <!-- Botões -->
+            <div class="pt-6 border-t border-gray-100 flex items-center justify-end gap-4">
+                <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform active:scale-95 flex items-center gap-2">
+                    <i class="ph ph-check"></i>
+                    Salvar e Continuar
+                </button>
+            </div>
+
+        </form>
+    </div>
+    
+    <!-- Logout de Emergência -->
+    <div class="text-center mt-6">
+         <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="text-sm text-slate-400 hover:text-red-500 underline">
+                Sair / Cancelar
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>
+--- FIM DO ARQUIVO: .\templates\companies\create_company.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\companies\includes\form_fields.html ---
+{% load widget_tweaks %}
+
+<!-- Seção 1: Identificação -->
+<div>
+    <h3 class="text-lg font-bold text-brand border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+        <i class="ph ph-identification-card"></i> Identificação
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">CNPJ <span class="text-red-500">*</span></label>
+            <!-- Lógica: Se já tem instância (edição), bloqueia o CNPJ -->
+            {% if form.instance.created_at %}
+                {% render_field form.cnpj class="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-100 text-slate-500 cursor-not-allowed outline-none" readonly="readonly" %}
+            {% else %}
+                {% render_field form.cnpj class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="00.000.000/0000-00" %}
+            {% endif %}
+            <p class="text-xs text-red-500 mt-1">{{ form.cnpj.errors.0 }}</p>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Inscrição Estadual</label>
+            {% render_field form.state_registration class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Razão Social <span class="text-red-500">*</span></label>
+            {% render_field form.legal_name class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nome Fantasia</label>
+            {% render_field form.trade_name class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+    </div>
+</div>
+
+<!-- Seção 2: Contato -->
+<div class="mt-8">
+    <h3 class="text-lg font-bold text-brand border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+        <i class="ph ph-phone"></i> Contato
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Telefone</label>
+            {% render_field form.phone class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email Comercial</label>
+            {% render_field form.email class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div class="md:col-span-3">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Website</label>
+            {% render_field form.website class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="https://" %}
+        </div>
+    </div>
+</div>
+
+<!-- Seção 3: Endereço -->
+<div class="mt-8">
+    <h3 class="text-lg font-bold text-brand border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+        <i class="ph ph-map-pin"></i> Endereço
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="md:col-span-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1">CEP</label>
+            {% render_field form.zip_code class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div class="md:col-span-3">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Endereço</label>
+            {% render_field form.address class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Número</label>
+            {% render_field form.number class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Complemento</label>
+            {% render_field form.complement class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Bairro</label>
+            {% render_field form.neighborhood class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Cidade</label>
+            {% render_field form.city class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+            {% render_field form.state class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none bg-white" %}
+        </div>
+    </div>
+</div>
+
+<!-- Sócios -->
+<!-- SEÇÃO DE SÓCIOS -->
+<div class="mt-10 pt-8 border-t border-gray-100">
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-bold text-brand flex items-center gap-2">
+            <i class="ph ph-users-three"></i> Quadro Societário
+        </h3>
+        <button type="button" id="add-partner-btn" class="text-sm font-bold text-brand bg-brand-surface hover:bg-brand/10 border border-brand/20 px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+            <i class="ph ph-plus-circle text-lg"></i>
+            Adicionar Sócio
+        </button>
+    </div>
+
+    <!-- Gerenciamento do Formset (Necessário pro Django) -->
+    {{ formset.management_form }}
+
+    <!-- Container da Lista -->
+    <div id="partners-container" class="space-y-4">
+        {% for form in formset %}
+            <!-- Linha de Sócio (Existente ou com erro) -->
+            <div class="partner-row bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative group hover:border-brand/30 transition-colors">
+                
+                <!-- ID Oculto (Fundamental para edição) -->
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <!-- Nome -->
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Completo</label>
+                        {% render_field form.name class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="Nome do sócio" %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>
+                    </div>
+
+                    <!-- CPF -->
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CPF</label>
+                        {% render_field form.cpf class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none cpf-mask" placeholder="000.000.000-00" %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.cpf.errors.0 }}</p>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                        {% render_field form.email class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="email@exemplo.com" %}
+                    </div>
+
+                    <!-- Telefone -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefone</label>
+                        {% render_field form.phone class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none phone-mask" placeholder="(00) 00000-0000" %}
+                    </div>
+                </div>
+
+                <!-- Botão Deletar (Lixeira) -->
+                <div class="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <!-- Checkbox de deletar oculto (o Django precisa disso) -->
+                    <div class="hidden">{{ form.DELETE }}</div> 
+                    <button type="button" class="delete-row-btn bg-white text-red-500 border border-red-100 shadow-sm p-2 rounded-full hover:bg-red-50" title="Remover Sócio">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Template Vazio (Escondido) para Clonar -->
+    <div id="empty-form" class="hidden">
+        <div class="partner-row bg-gray-50 p-5 rounded-xl border border-gray-200 border-dashed relative mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nome Completo</label>
+                    {% render_field formset.empty_form.name class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none" %}
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">CPF</label>
+                    {% render_field formset.empty_form.cpf class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none cpf-mask" %}
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
+                    {% render_field formset.empty_form.email class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none" %}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Telefone</label>
+                    {% render_field formset.empty_form.phone class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none phone-mask" %}
+                </div>
+            </div>
+            <button type="button" class="delete-row-btn absolute top-4 right-4 text-slate-400 hover:text-red-500">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <div class="hidden">{{ formset.empty_form.DELETE }}</div>
+        </div>
+    </div>
+</div>
+
+ <!-- Script Definitivo: Máscaras + BrasilAPI + ViaCEP -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // --- 1. MAPEAMENTO DOS CAMPOS ---
+        const els = {
+            cnpj: document.getElementById('id_cnpj'),
+            legal_name: document.getElementById('id_legal_name'),
+            trade_name: document.getElementById('id_trade_name'),
+            phone: document.getElementById('id_phone'),
+            email: document.getElementById('id_email'),
+            zip_code: document.getElementById('id_zip_code'),
+            address: document.getElementById('id_address'),
+            neighborhood: document.getElementById('id_neighborhood'),
+            city: document.getElementById('id_city'),
+            state: document.getElementById('id_state'),
+            number: document.getElementById('id_number'),
+            complement: document.getElementById('id_complement')
+        };
+
+        // --- 2. FUNÇÕES DE MÁSCARA (FORMATAÇÃO) ---
+        
+        // Máscara de CNPJ: 00.000.000/0000-00
+        const maskCNPJ = (value) => {
+            return value
+                .replace(/\D/g, '') // Remove tudo o que não é dígito
+                .replace(/^(\d{2})(\d)/, '$1.$2') 
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3') 
+                .replace(/\.(\d{3})(\d)/, '.$1/$2') 
+                .replace(/(\d{4})(\d)/, '$1-$2')
+                .substring(0, 18); // Limita tamanho
+        };
+
+        // Máscara de Telefone: (00)90000-0000 (Híbrido 8 ou 9 dígitos)
+        const maskPhone = (value) => {
+            let v = value.replace(/\D/g, '').substring(0, 11);
+            // Coloca parênteses em volta dos dois primeiros dígitos
+            v = v.replace(/^(\d{2})(\d)/g, '($1)$2'); 
+            // Coloca hífen entre o quarto e o quinto dígitos
+            v = v.replace(/(\d)(\d{4})$/, '$1-$2'); 
+            return v;
+        };
+
+        // Máscara de CEP: 00000-000
+        const maskCEP = (value) => {
+            return value
+                .replace(/\D/g, '')
+                .replace(/^(\d{5})(\d)/, '$1-$2')
+                .substring(0, 9);
+        };
+
+        // --- 3. APLICAR MÁSCARAS NOS INPUTS ---
+        
+        if (els.cnpj) {
+            els.cnpj.addEventListener('input', (e) => {
+                e.target.value = maskCNPJ(e.target.value);
+            });
+        }
+
+        if (els.phone) {
+            els.phone.addEventListener('input', (e) => {
+                e.target.value = maskPhone(e.target.value);
+            });
+        }
+
+        if (els.zip_code) {
+            els.zip_code.addEventListener('input', (e) => {
+                e.target.value = maskCEP(e.target.value);
+            });
+        }
+
+
+        // --- 4. LÓGICA DO CNPJ (BrasilAPI) ---
+        if (els.cnpj && !els.cnpj.readOnly) { 
+            els.cnpj.addEventListener('blur', function(e) {
+                // Remove formatação para enviar pra API
+                let cnpj_clean = e.target.value.replace(/\D/g, '');
+
+                if (cnpj_clean.length === 14) {
+                    els.legal_name.value = "🔍 Buscando dados...";
+                    els.trade_name.value = "...";
+
+                    fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj_clean}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Erro na API');
+                            return response.json();
+                        })
+                        .then(data => {
+                             console.log("DADOS RECEBIDOS DA API:", data);
+                            // Preenche os dados
+                            els.legal_name.value = data.razao_social;
+                            els.trade_name.value = data.nome_fantasia || data.razao_social;
+                            
+                            if(data.ddd_telefone_1) {
+                                // Aplica a máscara no telefone que veio da API
+                                let rawPhone = data.ddd_telefone_1;
+                                els.phone.value = maskPhone(rawPhone);
+                            }
+                            
+                            if(data.email) els.email.value = data.email.toLowerCase();
+
+                            if (data.cep) {
+                                // Aplica máscara no CEP que veio da API
+                                els.zip_code.value = maskCEP(data.cep); 
+                                els.address.value = data.logradouro;
+                                els.neighborhood.value = data.bairro;
+                                els.city.value = data.municipio;
+                                els.state.value = data.uf;
+                                els.number.value = data.numero;
+                                els.complement.value = data.complemento;
+                                els.number.focus();
+                            }
+                        })
+                        .catch(error => {
+                            console.log("BrasilAPI: Erro ou não encontrado.");
+                            if (els.legal_name.value.includes("Buscando")) els.legal_name.value = "";
+                            els.trade_name.value = "";
+                        });
+                }
+            });
+        }
+
+        // --- 5. LÓGICA DO CEP (ViaCEP) ---
+        if (els.zip_code) {
+            els.zip_code.addEventListener('blur', function(e) {
+                let cep_clean = e.target.value.replace(/\D/g, '');
+
+                if (cep_clean.length === 8) {
+                    fetch(`https://viacep.com.br/ws/${cep_clean}/json/`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (!("erro" in data)) {
+                                els.address.value = data.logradouro;
+                                els.neighborhood.value = data.bairro;
+                                els.city.value = data.localidade;
+                                els.state.value = data.uf;
+                                els.number.focus();
+                            }
+                        })
+                        .catch(err => console.log("ViaCEP Offline"));
+                }
+            });
+        }
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // ... (Seu código de CEP/CNPJ anterior fica aqui) ...
+
+        // --- SÓCIOS ---
+        const partnersContainer = document.getElementById('partners-container');
+        const addPartnerBtn = document.getElementById('add-partner-btn');
+        const totalFormsInput = document.getElementById('id_partners_list-TOTAL_FORMS');
+        const emptyFormTemplate = document.getElementById('empty-form');
+
+        // Função para reaplicar máscaras (CPF e Tel) em novas linhas
+        function applyPartnerMasks(context) {
+            // CPF
+            context.querySelectorAll('.cpf-mask').forEach(input => {
+                input.addEventListener('input', e => {
+                    e.target.value = e.target.value
+                        .replace(/\D/g, '')
+                        .replace(/(\d{3})(\d)/, '$1.$2')
+                        .replace(/(\d{3})(\d)/, '$1.$2')
+                        .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+                        .replace(/(-\d{2})\d+?$/, '$1');
+                });
+            });
+            
+            // Telefone
+            context.querySelectorAll('.phone-mask').forEach(input => {
+                // Assumindo que você já tem a função maskPhone do passo anterior
+                // Se não tiver, defina ela aqui novamente
+                input.addEventListener('input', e => {
+                    let v = e.target.value.replace(/\D/g, '').substring(0, 11);
+                    v = v.replace(/^(\d{2})(\d)/g, '($1)$2'); 
+                    v = v.replace(/(\d)(\d{4})$/, '$1-$2'); 
+                    e.target.value = v;
+                });
+            });
+        }
+
+        // Adicionar Linha
+        if (addPartnerBtn) {
+            addPartnerBtn.addEventListener('click', function() {
+                const count = parseInt(totalFormsInput.value);
+                let newRowHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, count);
+                
+                const div = document.createElement('div');
+                div.innerHTML = newRowHtml;
+                const newRow = div.firstElementChild;
+                
+                partnersContainer.appendChild(newRow);
+                totalFormsInput.value = count + 1;
+                
+                applyPartnerMasks(newRow); // Máscaras no novo item
+            });
+        }
+
+        // Deletar Linha
+        if (partnersContainer) {
+            partnersContainer.addEventListener('click', function(e) {
+                const btn = e.target.closest('.delete-row-btn');
+                if (btn) {
+                    const row = btn.closest('.partner-row, .bg-gray-50');
+                    const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+                    
+                    if (deleteCheckbox) {
+                        // Item existente: marca para deletar e esconde
+                        deleteCheckbox.checked = true;
+                        row.style.display = 'none';
+                    } else {
+                        // Item novo: remove do HTML
+                        row.remove();
+                    }
+                }
+            });
+        }
+
+        // Inicializa máscaras nos itens que já vieram carregados
+        applyPartnerMasks(document);
+    });
+</script>
+--- FIM DO ARQUIVO: .\templates\companies\includes\form_fields.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\includes\mobile-header.html ---
+<header class="flex lg:hidden items-center justify-between h-16 px-4 bg-white border-b border-gray-200 sticky top-0 z-10">
+    
+    <!-- Logo / Título Mobile (Agora na Esquerda) -->
+  <span class="text-xl font-bold tracking-wide flex items-center gap-2">
+    <!-- Ícone da Empresa -->
+    <div class="w-8 h-8 rounded bg-white/20 flex items-center justify-center">
+        <i class="ph ph-buildings text-xl"></i>
+    </div>
+    <!-- Nome Dinâmico -->
+    <span class="truncate max-w-[150px]">
+        {{ request.company.trade_name|default:request.company.legal_name|default:"Empresa" }}
+    </span>
+</span>
+
+    <!-- Botão Hamburger (Agora na Direita) -->
+    <button onclick="toggleSidebar()" class="p-2 -mr-2 text-slate-600 hover:bg-gray-100 rounded-lg">
+        <i class="ph ph-list text-3xl text-brand"></i>
+    </button>
+
+</header>
+--- FIM DO ARQUIVO: .\templates\includes\mobile-header.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\includes\sidebar.html ---
+<!-- Backdrop escuro (Mantém igual) -->
+<div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 z-20 bg-black/50 hidden lg:hidden glass"></div>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed inset-y-0 right-0 z-30 w-64 bg-white transform translate-x-full lg:static lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col h-screen shadow-2xl lg:shadow-none lg:border-r border-gray-200">
+    
+    <!-- Header da Sidebar -->
+    <div class="hidden lg:flex items-center justify-center h-16 border-b border-gray-100 bg-brand text-white">
+        <span class="text-xl font-bold tracking-wide flex items-center gap-2">
+            <!-- Ícone da Empresa -->
+            <div class="w-8 h-8 rounded bg-white/20 flex items-center justify-center">
+                <i class="ph ph-buildings text-xl"></i>
+            </div>
+            <!-- Nome Dinâmico -->
+            <span class="truncate max-w-[150px]" title="{{ request.company.trade_name|default:request.company.legal_name }}">
+                {{ request.company.trade_name|default:request.company.legal_name|default:"Empresa" }}
+            </span>
+        </span>
+    </div>
+
+    <!-- Header Mobile -->
+    <div class="flex lg:hidden items-center justify-between p-4 border-b border-gray-100">
+        <span class="text-sm font-bold text-slate-500">MENU</span>
+        <button onclick="toggleSidebar()" class="text-slate-400 hover:text-red-500">
+            <i class="ph ph-x text-2xl"></i>
+        </button>
+    </div>
+
+    <!-- MENU DE NAVEGAÇÃO -->
+    <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        
+        <!-- 1. DASHBOARD (Todos veem) -->
+        <a href="{% url 'home' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-medium bg-brand-surface text-brand rounded-lg">
+            <i class="ph ph-squares-four text-xl"></i>
+            Dashboard
+        </a>
+
+        <!-- 2. CLIENTES (Todos veem) -->
+        <a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-gray-50 hover:text-brand rounded-lg transition-colors">
+            <i class="ph ph-users text-xl"></i>
+            Clientes
+        </a>
+
+        <!-- 3. PROPOSTAS (Todos veem) -->
+        <a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-gray-50 hover:text-brand rounded-lg transition-colors">
+            <i class="ph ph-file-text text-xl"></i>
+            Propostas
+        </a>
+
+        <!-- BLOCÃO RESTRITO: Apenas Admin e Financeiro -->
+        {% if request.membership.role == 'admin' or request.membership.role == 'financial' %}
+            
+            <div class="pt-4 mt-4 border-t border-gray-100">
+                <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Gestão</p>
+                
+                <!-- 4. FINANCIAMENTOS -->
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-gray-50 hover:text-brand rounded-lg transition-colors">
+                    <i class="ph ph-bank text-xl"></i>
+                    Financiamentos
+                </a>
+
+                <!-- 5. USUÁRIOS -->
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-gray-50 hover:text-brand rounded-lg transition-colors">
+                    <i class="ph ph-users-three text-xl"></i>
+                    Usuários
+                </a>
+
+                <!-- 6. EMPRESA -->
+                <a href="{% url 'company_detail' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-gray-50 hover:text-brand rounded-lg transition-colors">
+                    <i class="ph ph-buildings text-xl"></i>
+                    Empresa
+                </a>
+            </div>
+
+        {% endif %}
+
+    </nav>
+
+    <!-- Footer (User) -->
+    <div class="p-4 border-t border-gray-100 bg-gray-50 lg:bg-white">
+        {% if user.is_authenticated %}
+        <div class="flex items-center gap-3 px-4 py-3 mb-2">
+            <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shadow-sm">
+                {{ user.email|first|upper }}
+            </div>
+            <div class="overflow-hidden">
+                <p class="text-sm font-medium text-slate-900 truncate">{{ user.name|default:"Usuário" }}</p>
+                <!-- Mostra o Cargo atual para facilitar -->
+                <p class="text-xs text-brand font-semibold truncate">
+                    {{ request.membership.get_role_display }}
+                </p>
+            </div>
+        </div>
+        
+        <form action="{% url 'account_logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 hover:bg-red-50 rounded-lg transition-colors shadow-sm">
+                <i class="ph ph-sign-out"></i> Sair
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</aside>
+--- FIM DO ARQUIVO: .\templates\includes\sidebar.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\includes\topbar.html ---
+<header class="hidden lg:flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 sticky top-0 z-10">
+    
+    <!-- Lado Esquerdo: Título ou Breadcrumb -->
+    <h1 class="text-lg font-semibold text-slate-800">
+        {% block page_title %}Visão Geral{% endblock %}
+    </h1>
+
+    <!-- Lado Direito: Notificações ou Ações -->
+    <div class="flex items-center gap-4">
+        <button class="p-2 text-slate-400 hover:text-brand rounded-full hover:bg-gray-50 transition-colors">
+            <i class="ph ph-bell text-xl"></i>
+        </button>
+        <div class="h-6 w-px bg-gray-200"></div>
+        <span class="text-sm text-slate-500">Versão 1.0</span>
+    </div>
+</header>
+--- FIM DO ARQUIVO: .\templates\includes\topbar.html ---
+
+
+--- INICIO DO ARQUIVO: .\templates\pages\home.html ---
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Início{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    <!-- Card 1 -->
+    <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-500 text-sm font-medium">Usuários Totais</h3>
+            <span class="p-2 bg-brand-surface text-brand rounded-lg">
+                <i class="ph ph-users text-xl"></i>
+            </span>
+        </div>
+        <p class="text-3xl font-bold text-slate-800">1,234</p>
+        <p class="text-sm text-green-600 flex items-center gap-1 mt-2">
+            <i class="ph ph-trend-up"></i> +12% este mês
+        </p>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-500 text-sm font-medium">Receita</h3>
+            <span class="p-2 bg-brand-surface text-brand rounded-lg">
+                <i class="ph ph-currency-dollar text-xl"></i>
+            </span>
+        </div>
+        <p class="text-3xl font-bold text-slate-800">R$ 45.200</p>
+        <p class="text-sm text-slate-400 mt-2">Atualizado hoje</p>
+    </div>
+
+    <!-- Card de Boas Vindas -->
+    <div class="bg-gradient-to-br from-brand to-brand-dark text-white p-6 rounded-xl shadow-lg md:col-span-2 lg:col-span-1">
+        <h3 class="text-xl font-bold mb-2">Bem-vindo, {{ user.name|default:"Visitante" }}!</h3>
+        <p class="text-brand-surface/80 text-sm mb-4">Este é seu novo painel minimalista e responsivo.</p>
+        <button class="px-4 py-2 bg-white text-brand font-semibold rounded-lg text-sm hover:bg-gray-100 transition-colors">
+            Ver Relatórios
+        </button>
+    </div>
+
+</div>
+
+<!-- Seção de Conteúdo -->
+<div class="mt-8 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h2 class="text-lg font-bold text-slate-800 mb-4">Atividades Recentes</h2>
+    <div class="space-y-4">
+        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-brand"></div>
+                <p class="text-sm text-slate-600">Novo usuário cadastrado</p>
+            </div>
+            <span class="text-xs text-slate-400">2 min atrás</span>
+        </div>
+        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                <p class="text-sm text-slate-600">Pagamento pendente</p>
+            </div>
+            <span class="text-xs text-slate-400">1h atrás</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+--- FIM DO ARQUIVO: .\templates\pages\home.html ---

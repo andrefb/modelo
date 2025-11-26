@@ -1,63 +1,72 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 import uuid
 
+class ActiveCompanyManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
 class Company(models.Model):
-    # Lista de Estados Brasileiros para o Select
     STATE_CHOICES = [
-        ('AC', 'Acre'), ('AL', 'Alagoas'), ('AP', 'Amapá'), ('AM', 'Amazonas'),
-        ('BA', 'Bahia'), ('CE', 'Ceará'), ('DF', 'Distrito Federal'), ('ES', 'Espírito Santo'),
-        ('GO', 'Goiás'), ('MA', 'Maranhão'), ('MT', 'Mato Grosso'), ('MS', 'Mato Grosso do Sul'),
-        ('MG', 'Minas Gerais'), ('PA', 'Pará'), ('PB', 'Paraíba'), ('PR', 'Paraná'),
-        ('PE', 'Pernambuco'), ('PI', 'Piauí'), ('RJ', 'Rio de Janeiro'), ('RN', 'Rio Grande do Norte'),
-        ('RS', 'Rio Grande do Sul'), ('RO', 'Rondônia'), ('RR', 'Roraima'), ('SC', 'Santa Catarina'),
-        ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins')
+        ('AC', 'AC'), ('AL', 'AL'), ('AP', 'AP'), ('AM', 'AM'),
+        ('BA', 'BA'), ('CE', 'CE'), ('DF', 'DF'), ('ES', 'ES'),
+        ('GO', 'GO'), ('MA', 'MA'), ('MT', 'MT'), ('MS', 'MS'),
+        ('MG', 'MG'), ('PA', 'PA'), ('PB', 'PB'), ('PR', 'PR'),
+        ('PE', 'PE'), ('PI', 'PI'), ('RJ', 'RJ'), ('RN', 'RN'),
+        ('RS', 'RS'), ('RO', 'RO'), ('RR', 'RR'), ('SC', 'SC'),
+        ('SP', 'SP'), ('SE', 'SE'), ('TO', 'TO')
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # --- Dados Obrigatórios ---
     legal_name = models.CharField('Razão Social', max_length=255)
-    cnpj = models.CharField('CNPJ', max_length=20, unique=True) # Ideal usar máscara no front
+    cnpj = models.CharField('CNPJ', max_length=20, unique=True)
     
-    # --- Dados Opcionais ---
     trade_name = models.CharField('Nome Fantasia', max_length=255, blank=True)
     state_registration = models.CharField('Inscrição Estadual', max_length=20, blank=True)
-    
-    
 
-    # --- Contato ---
     phone = models.CharField('Telefone', max_length=20, blank=True)
-    email = models.EmailField('Email Comercial', blank=True)
+    phone_2 = models.CharField('Celular/Outro', max_length=20, blank=True)
+    email = models.EmailField('Email', blank=True)
     website = models.URLField('Site', blank=True)
     
-    # --- Endereço Padrão BR ---
     zip_code = models.CharField('CEP', max_length=10, blank=True)
-    address = models.CharField('Endereço (Logradouro)', max_length=255, blank=True)
+    address = models.CharField('Logradouro', max_length=255, blank=True)
     number = models.CharField('Número', max_length=20, blank=True)
     complement = models.CharField('Complemento', max_length=100, blank=True)
     neighborhood = models.CharField('Bairro', max_length=100, blank=True)
     city = models.CharField('Cidade', max_length=100, blank=True)
-    state = models.CharField('Estado', max_length=2, choices=STATE_CHOICES, blank=True)
+    state = models.CharField('UF', max_length=2, choices=STATE_CHOICES, blank=True)
 
-    # --- Auditoria ---
+    is_active = models.BooleanField('Ativo?', default=True, db_index=True)
+    deactivated_at = models.DateTimeField('Desativado em', null=True, blank=True)
+    deactivated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='companies_deactivated',
+        verbose_name='Desativado por'
+    )
+
     created_at = models.DateTimeField('Criado em', auto_now_add=True)
-    updated_at = models.DateTimeField('Última atualização', auto_now=True) # Atualiza data sozinho
-    
+    updated_at = models.DateTimeField('Última atualização', auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL, # Se o usuário for deletado, mantemos o histórico
+        on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='companies_updates',
         verbose_name='Atualizado por'
     )
     
-    # --- Relação com Usuários ---
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL, 
         through='Membership',
         related_name='companies'
     )
+
+    objects = models.Manager()
+    active = ActiveCompanyManager()
 
     class Meta:
         verbose_name = 'Empresa'
@@ -65,12 +74,23 @@ class Company(models.Model):
         ordering = ['trade_name', 'legal_name']
 
     def __str__(self):
-        # Retorna o Fantasia. Se não tiver, retorna a Razão Social
         return self.trade_name if self.trade_name else self.legal_name
+
+    def soft_delete(self, user=None):
+        self.is_active = False
+        self.deactivated_at = timezone.now()
+        self.deactivated_by = user
+        self.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
+        self.memberships.update(is_active=False)
+
+    def reactivate(self):
+        self.is_active = True
+        self.deactivated_at = None
+        self.deactivated_by = None
+        self.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
 
 
 class Membership(models.Model):
-    # ... (O Membership continua IGUAL ao anterior) ...
     ROLE_ADMIN = 'admin'
     ROLE_FINANCIAL = 'financial'
     ROLE_BROKER = 'broker'
@@ -82,11 +102,21 @@ class Membership(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='memberships')
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE,
+        related_name='memberships'
+    )
+    company = models.ForeignKey(
+        Company, 
+        on_delete=models.PROTECT,
+        related_name='memberships'
+    )
+    
     role = models.CharField('Cargo / Perfil', max_length=20, choices=ROLE_CHOICES, default=ROLE_BROKER)
     is_active = models.BooleanField('Ativo?', default=True)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    date_joined = models.DateTimeField('Entrou em', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Membro'
@@ -95,8 +125,7 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.company} ({self.get_role_display()})"
-    
-    # ... (Classe Company acima)
+
 
 class Partner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

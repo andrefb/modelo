@@ -6,27 +6,23 @@ from django.urls import reverse
 class LoginRequiredMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
+        
+        # [MELHORIA SÊNIOR] Converter para TUPLA para performance nativa do CPython
+        # Adicionei '/health/' para monitoramento de servidores futuros
+        self.public_paths = tuple([
+            '/accounts/', 
+            '/admin/',     
+            '/static/',    
+            '/media/',
+            '/health/',  # Rota vital para Deploy (Load Balancers)
+            '/__debug__/', # Caso use Django Debug Toolbar no futuro
+        ])
 
     def __call__(self, request):
-        # 1. Lista de caminhos permitidos (Públicos)
-        # Precisamos deixar o usuário acessar a tela de login, cadastro e o admin
-        public_paths = [
-            '/accounts/',  # Rotas do Allauth (Login, Signup, Reset Senha)
-            '/admin/',     # Django Admin
-            '/static/',    # Arquivos estáticos (CSS/JS)
-            '/media/',     # Uploads
-        ]
+        # Otimização: Resolvemos a verificação em uma linha C-level
+        if not request.user.is_authenticated and not request.path_info.startswith(self.public_paths):
+            
+            # [UX] Adiciona o ?next=/url-que-ele-queria para redirecionar de volta após login
+            return redirect(f"{settings.LOGIN_URL}?next={request.path_info}")
 
-        # 2. Verifica se o caminho atual começa com algum dos permitidos
-        path = request.path_info
-        is_public = any(path.startswith(p) for p in public_paths)
-
-        # 3. A Lógica do Porteiro:
-        # Se o usuário NÃO está logado E a página NÃO é pública...
-        if not request.user.is_authenticated and not is_public:
-            # ...Redireciona para o Login
-            return redirect(settings.LOGIN_URL)
-
-        # Se passou no teste, segue o fluxo normal
-        response = self.get_response(request)
-        return response
+        return self.get_response(request)

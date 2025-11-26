@@ -1,154 +1,155 @@
 {% load widget_tweaks %}
 
-<!-- Seção 1: Identificação -->
+{% with input_style="w-full px-3 py-2 rounded-md border border-gray-300 text-slate-700 text-sm placeholder-gray-400 focus:ring-1 focus:ring-brand focus:border-brand transition-all outline-none bg-white shadow-sm" %}
+{% with mono_style=input_style|add:" font-mono" cpf_style=input_style|add:" cpf-mask text-center" phone_style=input_style|add:" phone-mask" %}
+
+<!-- Identificação -->
 <div>
-    <h3 class="text-lg font-bold text-brand border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-        <i class="ph ph-identification-card"></i> Identificação
+    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+        <i class="ph ph-identification-card text-brand text-lg"></i> Identificação
     </h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">CNPJ <span class="text-red-500">*</span></label>
-            <!-- Lógica: Se já tem instância (edição), bloqueia o CNPJ -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+        
+        <div class="md:col-span-6">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">CNPJ <span class="text-red-500">*</span></label>
             {% if form.instance.created_at %}
-                {% render_field form.cnpj class="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-100 text-slate-500 cursor-not-allowed outline-none" readonly="readonly" %}
+                {% render_field form.cnpj class="w-full px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-slate-500 text-sm cursor-not-allowed outline-none font-mono" readonly="readonly" %}
             {% else %}
-                {% render_field form.cnpj class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="00.000.000/0000-00" %}
+                {% render_field form.cnpj class=mono_style placeholder="00.000.000/0000-00" %}
             {% endif %}
             <p class="text-xs text-red-500 mt-1">{{ form.cnpj.errors.0 }}</p>
         </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Inscrição Estadual</label>
-            {% render_field form.state_registration class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+
+        <div class="md:col-span-6">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Inscrição Estadual</label>
+            {% render_field form.state_registration class=input_style %}
         </div>
-        <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Razão Social <span class="text-red-500">*</span></label>
-            {% render_field form.legal_name class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+
+        <div class="md:col-span-6">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Razão Social <span class="text-red-500">*</span></label>
+            {% render_field form.legal_name class=input_style %}
         </div>
-        <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Nome Fantasia</label>
-            {% render_field form.trade_name class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+
+        <div class="md:col-span-6">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nome Fantasia</label>
+            {% render_field form.trade_name class=input_style %}
         </div>
     </div>
 </div>
 
-<!-- Seção 2: Contato -->
+<!-- Contato -->
 <div class="mt-8">
-    <h3 class="text-lg font-bold text-brand border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-        <i class="ph ph-phone"></i> Contato
+    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+        <i class="ph ph-phone text-brand text-lg"></i> Contato
     </h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Telefone</label>
-            {% render_field form.phone class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+        
+        <div class="md:col-span-3">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Telefone</label>
+            {% render_field form.phone class=phone_style %}
+        </div>
+
+        <div class="md:col-span-3">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Celular/Outro</label>
+            {% render_field form.phone_2 class=phone_style placeholder="(00) 00000-0000" %}
+        </div>
+
+        <div class="md:col-span-6">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Email</label>
+            {% render_field form.email class=input_style %}
+        </div>
+
+        <div class="md:col-span-12">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Website</label>
+            {% render_field form.website class=input_style placeholder="https://" %}
+        </div>
+    </div>
+</div>
+
+<!-- Endereço -->
+<div class="mt-8">
+    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+        <i class="ph ph-map-pin text-brand text-lg"></i> Endereço
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+        
+        <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">CEP</label>
+            {% render_field form.zip_code class=input_style %}
+        </div>
+        <div class="md:col-span-8">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Endereço</label>
+            {% render_field form.address class=input_style %}
         </div>
         <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Email Comercial</label>
-            {% render_field form.email class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Número</label>
+            {% render_field form.number class=input_style %}
+        </div>
+
+        <div class="md:col-span-5">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Complemento</label>
+            {% render_field form.complement class=input_style %}
         </div>
         <div class="md:col-span-3">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Website</label>
-            {% render_field form.website class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="https://" %}
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Bairro</label>
+            {% render_field form.neighborhood class=input_style %}
         </div>
-    </div>
-</div>
-
-<!-- Seção 3: Endereço -->
-<div class="mt-8">
-    <h3 class="text-lg font-bold text-brand border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-        <i class="ph ph-map-pin"></i> Endereço
-    </h3>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="md:col-span-3">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Cidade</label>
+            {% render_field form.city class=input_style %}
+        </div>
         <div class="md:col-span-1">
-            <label class="block text-sm font-medium text-slate-700 mb-1">CEP</label>
-            {% render_field form.zip_code class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
-        </div>
-        <div class="md:col-span-3">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Endereço</label>
-            {% render_field form.address class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Número</label>
-            {% render_field form.number class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Complemento</label>
-            {% render_field form.complement class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Bairro</label>
-            {% render_field form.neighborhood class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Cidade</label>
-            {% render_field form.city class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" %}
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
-            {% render_field form.state class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none bg-white" %}
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">UF</label>
+            {% render_field form.state class="w-full px-1 py-2 rounded-md border border-gray-300 text-slate-700 text-sm focus:ring-1 focus:ring-brand outline-none bg-white shadow-sm text-center" %}
         </div>
     </div>
 </div>
 
-<!-- Sócios -->
-<!-- SEÇÃO DE SÓCIOS -->
+<!-- Quadro Societário -->
 <div class="mt-10 pt-8 border-t border-gray-100">
     <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-bold text-brand flex items-center gap-2">
-            <i class="ph ph-users-three"></i> Quadro Societário
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <i class="ph ph-users-three text-brand text-lg"></i> Quadro Societário
         </h3>
-        <button type="button" id="add-partner-btn" class="text-sm font-bold text-brand bg-brand-surface hover:bg-brand/10 border border-brand/20 px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
-            <i class="ph ph-plus-circle text-lg"></i>
+        <button type="button" id="add-partner-btn" class="text-xs font-bold text-brand bg-brand-surface hover:bg-brand/10 border border-brand/20 px-4 py-2 rounded-md transition-colors flex items-center gap-2">
+            <i class="ph ph-plus-circle text-base"></i>
             Adicionar Sócio
         </button>
     </div>
 
-    <!-- Gerenciamento do Formset (Necessário pro Django) -->
     {{ formset.management_form }}
 
-    <!-- Container da Lista -->
-    <div id="partners-container" class="space-y-4">
+    <div id="partners-container" class="space-y-3">
         {% for form in formset %}
-            <!-- Linha de Sócio (Existente ou com erro) -->
-            <div class="partner-row bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative group hover:border-brand/30 transition-colors">
-                
-                <!-- ID Oculto (Fundamental para edição) -->
+            <div class="partner-row bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative group hover:border-brand/30 transition-all">
                 {% for hidden in form.hidden_fields %}
                     {{ hidden }}
                 {% endfor %}
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <!-- Nome -->
-                    <div class="md:col-span-4">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Completo</label>
-                        {% render_field form.name class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="Nome do sócio" %}
+                    <div class="md:col-span-3">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome Completo</label>
+                        {% render_field form.name class=input_style placeholder="Nome do sócio" %}
                         <p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>
                     </div>
-
-                    <!-- CPF -->
-                    <div class="md:col-span-3">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CPF</label>
-                        {% render_field form.cpf class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none cpf-mask" placeholder="000.000.000-00" %}
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">CPF</label>
+                        {% render_field form.cpf class=cpf_style placeholder="000.000.000-00" %}
                         <p class="text-xs text-red-500 mt-1">{{ form.cpf.errors.0 }}</p>
                     </div>
-
-                    <!-- Email -->
-                    <div class="md:col-span-3">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-                        {% render_field form.email class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none" placeholder="email@exemplo.com" %}
+                    <div class="md:col-span-4">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</label>
+                        {% render_field form.email class=input_style placeholder="email@exemplo.com" %}
                     </div>
-
-                    <!-- Telefone -->
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefone</label>
-                        {% render_field form.phone class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none phone-mask" placeholder="(00) 00000-0000" %}
+                    <div class="md:col-span-3">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Telefone</label>
+                        {% render_field form.phone class=phone_style placeholder="(00) 00000-0000" %}
                     </div>
                 </div>
 
-                <!-- Botão Deletar (Lixeira) -->
-                <div class="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <!-- Checkbox de deletar oculto (o Django precisa disso) -->
+                <div class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div class="hidden">{{ form.DELETE }}</div> 
-                    <button type="button" class="delete-row-btn bg-white text-red-500 border border-red-100 shadow-sm p-2 rounded-full hover:bg-red-50" title="Remover Sócio">
+                    <button type="button" class="delete-row-btn bg-white text-red-500 border border-red-100 shadow-sm p-1.5 rounded-full hover:bg-red-50 transition-colors" title="Remover">
                         <i class="ph ph-trash text-lg"></i>
                     </button>
                 </div>
@@ -156,45 +157,46 @@
         {% endfor %}
     </div>
 
-    <!-- Template Vazio (Escondido) para Clonar -->
+    <!-- Template Clone -->
     <div id="empty-form" class="hidden">
-        <div class="partner-row bg-gray-50 p-5 rounded-xl border border-gray-200 border-dashed relative mt-4">
+        <div class="partner-row bg-gray-50 p-4 rounded-lg border border-gray-200 border-dashed relative mt-3">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div class="md:col-span-4">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nome Completo</label>
-                    {% render_field formset.empty_form.name class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none" %}
-                </div>
                 <div class="md:col-span-3">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">CPF</label>
-                    {% render_field formset.empty_form.cpf class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none cpf-mask" %}
-                </div>
-                <div class="md:col-span-3">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
-                    {% render_field formset.empty_form.email class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none" %}
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome Completo</label>
+                    {% render_field formset.empty_form.name class=input_style %}
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Telefone</label>
-                    {% render_field formset.empty_form.phone class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-brand outline-none phone-mask" %}
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">CPF</label>
+                    {% render_field formset.empty_form.cpf class=cpf_style %}
+                </div>
+                <div class="md:col-span-4">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</label>
+                    {% render_field formset.empty_form.email class=input_style %}
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Telefone</label>
+                    {% render_field formset.empty_form.phone class=phone_style %}
                 </div>
             </div>
-            <button type="button" class="delete-row-btn absolute top-4 right-4 text-slate-400 hover:text-red-500">
-                <i class="ph ph-x text-xl"></i>
+            <button type="button" class="delete-row-btn absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors">
+                <i class="ph ph-x text-lg"></i>
             </button>
             <div class="hidden">{{ formset.empty_form.DELETE }}</div>
         </div>
     </div>
 </div>
 
- <!-- Script Definitivo: Máscaras + BrasilAPI + ViaCEP -->
+{% endwith %}
+{% endwith %}
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        
-        // --- 1. MAPEAMENTO DOS CAMPOS ---
         const els = {
             cnpj: document.getElementById('id_cnpj'),
             legal_name: document.getElementById('id_legal_name'),
             trade_name: document.getElementById('id_trade_name'),
             phone: document.getElementById('id_phone'),
+            phone_2: document.getElementById('id_phone_2'),
             email: document.getElementById('id_email'),
             zip_code: document.getElementById('id_zip_code'),
             address: document.getElementById('id_address'),
@@ -205,206 +207,90 @@
             complement: document.getElementById('id_complement')
         };
 
-        // --- 2. FUNÇÕES DE MÁSCARA (FORMATAÇÃO) ---
-        
-        // Máscara de CNPJ: 00.000.000/0000-00
-        const maskCNPJ = (value) => {
-            return value
-                .replace(/\D/g, '') // Remove tudo o que não é dígito
-                .replace(/^(\d{2})(\d)/, '$1.$2') 
-                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3') 
-                .replace(/\.(\d{3})(\d)/, '.$1/$2') 
-                .replace(/(\d{4})(\d)/, '$1-$2')
-                .substring(0, 18); // Limita tamanho
-        };
+        const maskCNPJ = v => v.replace(/\D/g, '').replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2').substring(0, 18);
+        const maskPhone = v => { let r = v.replace(/\D/g, '').substring(0, 11); if(r.length>10) return r.replace(/^(\d\d)(\d{5})(\d{4}).*/,"($1) $2-$3"); if(r.length>5) return r.replace(/^(\d\d)(\d{4})(\d{0,4}).*/,"($1) $2-$3"); if(r.length>2) return r.replace(/^(\d\d)/,"($1) "); return r; };
+        const maskCEP = v => v.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
+        const maskCPF = v => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').replace(/(-\d{2})\d+?$/, '$1').substring(0, 14);
 
-        // Máscara de Telefone: (00)90000-0000 (Híbrido 8 ou 9 dígitos)
-        const maskPhone = (value) => {
-            let v = value.replace(/\D/g, '').substring(0, 11);
-            // Coloca parênteses em volta dos dois primeiros dígitos
-            v = v.replace(/^(\d{2})(\d)/g, '($1)$2'); 
-            // Coloca hífen entre o quarto e o quinto dígitos
-            v = v.replace(/(\d)(\d{4})$/, '$1-$2'); 
-            return v;
-        };
+        if (els.cnpj) els.cnpj.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
+        if (els.phone) els.phone.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
+        if (els.phone_2) els.phone_2.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
+        if (els.zip_code) els.zip_code.addEventListener('input', e => e.target.value = maskCEP(e.target.value));
 
-        // Máscara de CEP: 00000-000
-        const maskCEP = (value) => {
-            return value
-                .replace(/\D/g, '')
-                .replace(/^(\d{5})(\d)/, '$1-$2')
-                .substring(0, 9);
-        };
-
-        // --- 3. APLICAR MÁSCARAS NOS INPUTS ---
-        
-        if (els.cnpj) {
-            els.cnpj.addEventListener('input', (e) => {
-                e.target.value = maskCNPJ(e.target.value);
-            });
-        }
-
-        if (els.phone) {
-            els.phone.addEventListener('input', (e) => {
-                e.target.value = maskPhone(e.target.value);
-            });
-        }
-
-        if (els.zip_code) {
-            els.zip_code.addEventListener('input', (e) => {
-                e.target.value = maskCEP(e.target.value);
-            });
-        }
-
-
-        // --- 4. LÓGICA DO CNPJ (BrasilAPI) ---
-        if (els.cnpj && !els.cnpj.readOnly) { 
+        if (els.cnpj && !els.cnpj.readOnly) {
             els.cnpj.addEventListener('blur', function(e) {
-                // Remove formatação para enviar pra API
-                let cnpj_clean = e.target.value.replace(/\D/g, '');
-
-                if (cnpj_clean.length === 14) {
-                    els.legal_name.value = "🔍 Buscando dados...";
-                    els.trade_name.value = "...";
-
-                    fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj_clean}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error('Erro na API');
-                            return response.json();
-                        })
-                        .then(data => {
-                             console.log("DADOS RECEBIDOS DA API:", data);
-                            // Preenche os dados
-                            els.legal_name.value = data.razao_social;
-                            els.trade_name.value = data.nome_fantasia || data.razao_social;
-                            
-                            if(data.ddd_telefone_1) {
-                                // Aplica a máscara no telefone que veio da API
-                                let rawPhone = data.ddd_telefone_1;
-                                els.phone.value = maskPhone(rawPhone);
-                            }
-                            
-                            if(data.email) els.email.value = data.email.toLowerCase();
-
-                            if (data.cep) {
-                                // Aplica máscara no CEP que veio da API
-                                els.zip_code.value = maskCEP(data.cep); 
-                                els.address.value = data.logradouro;
-                                els.neighborhood.value = data.bairro;
-                                els.city.value = data.municipio;
-                                els.state.value = data.uf;
-                                els.number.value = data.numero;
-                                els.complement.value = data.complemento;
-                                els.number.focus();
-                            }
-                        })
-                        .catch(error => {
-                            console.log("BrasilAPI: Erro ou não encontrado.");
-                            if (els.legal_name.value.includes("Buscando")) els.legal_name.value = "";
-                            els.trade_name.value = "";
-                        });
+                let clean = e.target.value.replace(/\D/g, '');
+                if (clean.length === 14) {
+                    els.legal_name.value = "🔍 Buscando...";
+                    fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`).then(r => r.ok ? r.json() : null).then(data => {
+                        if(!data) return;
+                        els.legal_name.value = data.razao_social;
+                        els.trade_name.value = data.nome_fantasia || data.razao_social;
+                        if(data.ddd_telefone_1) els.phone.value = maskPhone(data.ddd_telefone_1);
+                        if(data.ddd_telefone_2) els.phone_2.value = maskPhone(data.ddd_telefone_2);
+                        if(data.email) els.email.value = data.email.toLowerCase();
+                        if (data.cep) {
+                            els.zip_code.value = maskCEP(data.cep);
+                            els.address.value = data.logradouro;
+                            els.neighborhood.value = data.bairro;
+                            els.city.value = data.municipio;
+                            els.state.value = data.uf;
+                            els.number.value = data.numero;
+                            els.complement.value = data.complemento;
+                            els.number.focus();
+                        }
+                    }).catch(() => els.legal_name.value = "");
                 }
             });
         }
 
-        // --- 5. LÓGICA DO CEP (ViaCEP) ---
         if (els.zip_code) {
             els.zip_code.addEventListener('blur', function(e) {
-                let cep_clean = e.target.value.replace(/\D/g, '');
-
-                if (cep_clean.length === 8) {
-                    fetch(`https://viacep.com.br/ws/${cep_clean}/json/`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (!("erro" in data)) {
-                                els.address.value = data.logradouro;
-                                els.neighborhood.value = data.bairro;
-                                els.city.value = data.localidade;
-                                els.state.value = data.uf;
-                                els.number.focus();
-                            }
-                        })
-                        .catch(err => console.log("ViaCEP Offline"));
+                let clean = e.target.value.replace(/\D/g, '');
+                if (clean.length === 8) {
+                    fetch(`https://viacep.com.br/ws/${clean}/json/`).then(r=>r.json()).then(data => {
+                        if (!data.erro) {
+                            els.address.value = data.logradouro;
+                            els.neighborhood.value = data.bairro;
+                            els.city.value = data.localidade;
+                            els.state.value = data.uf;
+                            els.number.focus();
+                        }
+                    });
                 }
             });
         }
-    });
-</script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // ... (Seu código de CEP/CNPJ anterior fica aqui) ...
 
-        // --- SÓCIOS ---
-        const partnersContainer = document.getElementById('partners-container');
-        const addPartnerBtn = document.getElementById('add-partner-btn');
-        const totalFormsInput = document.getElementById('id_partners_list-TOTAL_FORMS');
-        const emptyFormTemplate = document.getElementById('empty-form');
+        const container = document.getElementById('partners-container');
+        const addBtn = document.getElementById('add-partner-btn');
+        const totalForms = document.getElementById('id_partners_list-TOTAL_FORMS');
+        const template = document.getElementById('empty-form');
 
-        // Função para reaplicar máscaras (CPF e Tel) em novas linhas
-        function applyPartnerMasks(context) {
-            // CPF
-            context.querySelectorAll('.cpf-mask').forEach(input => {
-                input.addEventListener('input', e => {
-                    e.target.value = e.target.value
-                        .replace(/\D/g, '')
-                        .replace(/(\d{3})(\d)/, '$1.$2')
-                        .replace(/(\d{3})(\d)/, '$1.$2')
-                        .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-                        .replace(/(-\d{2})\d+?$/, '$1');
-                });
-            });
-            
-            // Telefone
-            context.querySelectorAll('.phone-mask').forEach(input => {
-                // Assumindo que você já tem a função maskPhone do passo anterior
-                // Se não tiver, defina ela aqui novamente
-                input.addEventListener('input', e => {
-                    let v = e.target.value.replace(/\D/g, '').substring(0, 11);
-                    v = v.replace(/^(\d{2})(\d)/g, '($1)$2'); 
-                    v = v.replace(/(\d)(\d{4})$/, '$1-$2'); 
-                    e.target.value = v;
-                });
-            });
+        function applyMasks(ctx) {
+            ctx.querySelectorAll('.cpf-mask').forEach(i => i.addEventListener('input', e => e.target.value = maskCPF(e.target.value)));
+            ctx.querySelectorAll('.phone-mask').forEach(i => i.addEventListener('input', e => e.target.value = maskPhone(e.target.value)));
         }
 
-        // Adicionar Linha
-        if (addPartnerBtn) {
-            addPartnerBtn.addEventListener('click', function() {
-                const count = parseInt(totalFormsInput.value);
-                let newRowHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, count);
-                
+        if (addBtn && container) {
+            addBtn.addEventListener('click', () => {
+                const count = parseInt(totalForms.value);
                 const div = document.createElement('div');
-                div.innerHTML = newRowHtml;
-                const newRow = div.firstElementChild;
-                
-                partnersContainer.appendChild(newRow);
-                totalFormsInput.value = count + 1;
-                
-                applyPartnerMasks(newRow); // Máscaras no novo item
+                div.innerHTML = template.innerHTML.replace(/__prefix__/g, count);
+                const row = div.firstElementChild;
+                container.appendChild(row);
+                totalForms.value = count + 1;
+                applyMasks(row);
             });
-        }
 
-        // Deletar Linha
-        if (partnersContainer) {
-            partnersContainer.addEventListener('click', function(e) {
+            container.addEventListener('click', e => {
                 const btn = e.target.closest('.delete-row-btn');
                 if (btn) {
-                    const row = btn.closest('.partner-row, .bg-gray-50');
-                    const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
-                    
-                    if (deleteCheckbox) {
-                        // Item existente: marca para deletar e esconde
-                        deleteCheckbox.checked = true;
-                        row.style.display = 'none';
-                    } else {
-                        // Item novo: remove do HTML
-                        row.remove();
-                    }
+                    const row = btn.closest('.partner-row');
+                    const chk = row.querySelector('input[name$="-DELETE"]');
+                    if (chk) { chk.checked = true; row.style.display = 'none'; } else { row.remove(); }
                 }
             });
         }
-
-        // Inicializa máscaras nos itens que já vieram carregados
-        applyPartnerMasks(document);
+        applyMasks(document);
     });
 </script>
