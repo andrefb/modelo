@@ -159,3 +159,12 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 LOGIN_URL = 'account_login' # Nome da rota de login do Allauth
+
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://d35b6c2a9a325f7edb984bce43368cb2@o4510428396650496.ingest.us.sentry.io/4510428405366784",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
