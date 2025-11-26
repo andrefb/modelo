@@ -155,9 +155,9 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Meu Projeto] '
 
 
 if DEBUG:
-    EMAIL_BACKEND = 'django.core. mail.backends.console.EmailBackend'
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    EMAIL_BACKEND = 'django.core.mail. backends.smtp.EmailBackend'
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
     EMAIL_PORT = env. int('EMAIL_PORT', default=587)
     EMAIL_USE_TLS = True
@@ -198,12 +198,20 @@ ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_PREVENT_ENUMERATION = True  # 👈 IMPORTANTE!
 
 # Adicione ao settings.py
-CACHES = {
-    'default': {
-        'BACKEND': 'django. core.cache.backends.redis.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://127.0.0. 1:6379/1'),
+# ✅ Melhor abordagem
+if env('REDIS_URL', default=None):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': env('REDIS_URL'),
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
 
 
 import sentry_sdk

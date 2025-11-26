@@ -70,13 +70,13 @@
 
 
 <script>
-document. querySelector('input[name="code"]').addEventListener('input', function(e) {
-    const val = e.target. value. replace(/\D/g, '');
+document.querySelector('input[name="code"]').addEventListener('input', function(e) {
+    const val = e.target.value.replace(/\D/g, '');
     e.target.value = val.toUpperCase();
     
     // Auto-submit quando tiver 6 caracteres
     if (val.length === 6) {
-        e.target. closest('form').submit();
+        e.target.closest('form').submit();
     }
 });
 </script>

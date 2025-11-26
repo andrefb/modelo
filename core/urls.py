@@ -3,6 +3,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
+# ✅ Opção 1: Definir a função
+def trigger_error(request):
+    division_by_zero = 1 / 0  # Proposital para testar Sentry
+
 
 
 urlpatterns = [
