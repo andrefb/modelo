@@ -10,7 +10,7 @@ def trigger_error(request):
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('meu7581/', admin.site.urls), 
     path('accounts/', include('allauth.urls')),
     path('companies/', include('companies.urls')), # <--- Adicione isso
     path('', TemplateView.as_view(template_name='pages/home.html'), name='home'),

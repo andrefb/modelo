@@ -1,44 +1,50 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db import transaction # Importante para salvar Pai e Filhos juntos
-from .forms import CompanyCreateForm, PartnerFormSet # Importamos o Formset aqui
+from django.db import transaction
+from .forms import CompanyCreateForm, PartnerFormSet
 from .models import Membership
 from .decorators import role_required
 
 @login_required
 def create_company(request):
-    # Lógica: Se o usuário postar dados
+    # [SEGURANÇA] Se o usuário já tem uma empresa ativa, não deixa criar outra (Regra de Negócio MVP)
+    # Se no futuro você quiser permitir multi-empresas, é só apagar este bloco if.
+    if request.user.memberships.filter(is_active=True).exists():
+        return redirect('home')
+
     if request.method == 'POST':
         form = CompanyCreateForm(request.POST)
-        formset = PartnerFormSet(request.POST) # Pega os dados dos sócios
+        formset = PartnerFormSet(request.POST)
         
-        # Valida tanto a empresa quanto a lista de sócios
         if form.is_valid() and formset.is_valid():
-            with transaction.atomic(): # Garante que salva tudo ou nada
+            with transaction.atomic():
                 # 1. Salva a empresa
                 company = form.save(commit=False)
                 company.updated_by = request.user
                 company.save()
                 
-                # 2. Cria o vínculo de Admin
+                # 2. O PULO DO GATO: Define quem criou como ADMIN
                 Membership.objects.create(
                     user=request.user,
                     company=company,
-                    role=Membership.ROLE_ADMIN,
+                    role=Membership.ROLE_ADMIN, # <--- Garante o poder total
                     is_active=True
                 )
                 
-                # 3. Salva os sócios vinculados a essa empresa
+                # 3. Salva os sócios
                 formset.instance = company
                 formset.save()
+
+                # 4. [MELHORIA] Já define essa empresa na sessão do usuário
+                # Assim o middleware não precisa adivinhar na próxima tela
+                request.session['company_id'] = str(company.id)
                 
-            messages.success(request, 'Empresa e sócios cadastrados com sucesso!')
+            messages.success(request, 'Empresa configurada com sucesso!')
             return redirect('home')
     else:
-        # Lógica: Se for o primeiro acesso (GET)
         form = CompanyCreateForm()
-        formset = PartnerFormSet() # Formset vazio para adicionar itens
+        formset = PartnerFormSet()
 
     return render(request, 'companies/create_company.html', {
         'form': form, 
@@ -48,8 +54,6 @@ def create_company(request):
 @login_required
 @role_required([Membership.ROLE_ADMIN, Membership.ROLE_FINANCIAL])
 def company_detail(request):
-    # Esta é a view que estava faltando e causando o erro!
-    # O middleware já colocou a empresa em request.company
     return render(request, 'companies/company_detail.html', {'company': request.company})
 
 @login_required
@@ -59,7 +63,6 @@ def company_update(request):
     
     if request.method == 'POST':
         form = CompanyCreateForm(request.POST, instance=company)
-        # Passamos 'instance=company' para o formset saber quais sócios carregar
         formset = PartnerFormSet(request.POST, instance=company) 
         
         if form.is_valid() and formset.is_valid():
@@ -67,8 +70,7 @@ def company_update(request):
                 company = form.save(commit=False)
                 company.updated_by = request.user
                 company.save()
-                
-                formset.save() # Salva edições, novos e deleções
+                formset.save()
             
             messages.success(request, 'Dados atualizados com sucesso!')
             return redirect('company_detail')
