@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Meu Projeto{% endblock %}</title>
+    <!-- Dentro do <head> do base.html -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
     
     <!-- Tailwind CSS (Configurado para sua cor) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -37,9 +39,24 @@
         body { font-family: 'Inter', sans-serif; }
         /* Transição suave para o menu mobile */
         .sidebar-transition { transition: transform 0.3s ease-in-out; }
+
+        /* Animação de Fade para o HTMX */
+.htmx-settling > * {
+    opacity: 0;
+}
+.htmx-added > * {
+    opacity: 0;
+}
+.htmx-swapping > * {
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+main {
+    transition: opacity 0.3s ease-in;
+}
     </style>
 </head>
-<body class="bg-gray-50 text-slate-800 antialiased">
+<body class="bg-gray-50 text-slate-800 antialiased" hx-boost="true">
 
     <div class="flex h-screen overflow-hidden bg-gray-50">
         
@@ -90,7 +107,11 @@
             backdrop.classList.toggle('hidden');
         }
     </script>
-</body>
-</html>
+    <!-- No final do body do base.html, antes de fechar a tag </body> -->
+<script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    });
+</script>
 </body>
 </html>
