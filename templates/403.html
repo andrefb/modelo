@@ -1,0 +1,41 @@
+{% extends "base_auth.html" %} <!-- Usamos base_auth para limpar menus laterais -->
+
+{% block head_title %}Acesso Negado{% endblock %}
+{% block sub_title %}Você não tem permissão para acessar esta área{% endblock %}
+
+{% block content %}
+
+<div class="text-center space-y-6">
+    
+    <!-- Ícone de Bloqueio -->
+    <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto border border-red-100">
+        <i class="ph ph-lock-key text-4xl text-red-500"></i>
+    </div>
+
+    <div class="space-y-2">
+        <h3 class="text-lg font-bold text-slate-800">Permissão Insuficiente</h3>
+        <p class="text-slate-600 text-sm leading-relaxed max-w-xs mx-auto">
+            Você não possui autorização para realizar esta ação ou visualizar esta página.
+        </p>
+    </div>
+
+    <!-- Ações -->
+    <div class="pt-2 space-y-3">
+        <a href="{% url 'home' %}" class="block w-full py-2.5 px-4 bg-brand hover:bg-brand-dark text-white font-bold rounded-md shadow-md shadow-brand/20 transition-all">
+            Voltar ao Dashboard
+        </a>
+        
+        <button onclick="history.back()" class="block w-full py-2.5 px-4 bg-white border border-gray-200 text-slate-600 font-semibold rounded-md hover:bg-gray-50 transition-colors">
+            Voltar para página anterior
+        </button>
+    </div>
+
+    <div class="pt-6 border-t border-gray-100">
+        <p class="text-xs text-slate-400">
+            Acha que isso é um erro? <br> Contate o administrador da sua empresa.
+        </p>
+    </div>
+
+</div>
+
+{% endblock %}
